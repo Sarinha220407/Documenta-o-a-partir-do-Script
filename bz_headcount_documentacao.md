@@ -1,238 +1,235 @@
 # Documentação Técnica
 
 **Arquivo:** `bz_headcount.qvs`  
-**Última atualização:** 15/08/2025 10:00:46
+**Última atualização:** 15/08/2025 11:52:02
 
 # **Documentação do Script QVS – Processamento de Dados de Recursos Humanos**
 
----
-
 ## **1. Introdução**
-Este documento explica, de forma clara e organizada, o funcionamento de um script utilizado para **processar e organizar dados relacionados a Recursos Humanos (RH)**. O script é escrito em uma linguagem chamada **QVS** (usada na ferramenta **QlikView/Qlik Sense**), que serve para **extrair, transformar e armazenar informações** de maneira estruturada.
+Este documento explica, de forma clara e organizada, o funcionamento de um script utilizado para processar e preparar dados relacionados a **Recursos Humanos (RH)**. O script é escrito em uma linguagem chamada **QVS** (usada na ferramenta **QlikView/Qlik Sense**), que serve para extrair, transformar e armazenar informações de maneira estruturada.
 
-O objetivo principal deste script é **coletar dados de diferentes fontes** (como planilhas e arquivos internos) e **prepará-los para análise**, facilitando relatórios e tomadas de decisão na área de RH.
+O objetivo principal deste script é **coletar dados de diferentes fontes** (como planilhas e arquivos internos) e **organizá-los em um formato padronizado**, facilitando sua análise posterior.
 
 ---
 
 ## **2. Configurações Iniciais**
-Antes de processar os dados, o script define **configurações gerais** para garantir que números, datas, moedas e outros formatos sejam exibidos corretamente, de acordo com o padrão brasileiro.
+Antes de processar os dados, o script define algumas **configurações básicas** para garantir que números, datas, moedas e textos sejam exibidos corretamente, de acordo com o padrão brasileiro.
 
-### **2.1. Formatação de Números, Datas e Moedas**
+### **2.1. Formatação de Números, Moedas e Datas**
 | Configuração | Descrição | Exemplo |
 |--------------|-----------|---------|
-| **`ThousandSep='.'`** | Separador de milhar (ponto) | `1.000` (mil) |
-| **`DecimalSep=','`** | Separador decimal (vírgula) | `12,50` (doze vírgula cinquenta) |
-| **`MoneyFormat='R$#.##0,00'`** | Formato de moeda (Real brasileiro) | `R$1.250,00` |
-| **`DateFormat='DD.MM.YYYY'`** | Formato de data (dia/mês/ano) | `15.05.2024` |
-| **`TimestampFormat='DD/MM/YYYY hh:mm:ss'`** | Formato de data e hora | `15/05/2024 14:30:00` |
-| **`CollationLocale='pt-BR'`** | Idioma e região (português do Brasil) | Ordenação de palavras em português |
+| **ThousandSep** | Separador de milhar (ponto) | `1.000` (mil) |
+| **DecimalSep** | Separador decimal (vírgula) | `3,14` (três vírgula quatorze) |
+| **MoneyFormat** | Formato de moeda (Real - R$) | `R$1.234,56` |
+| **DateFormat** | Formato de data | `31.12.2023` (dia.mês.ano) |
+| **TimeFormat** | Formato de hora | `14:30:45` |
+| **TimestampFormat** | Formato de data e hora completos | `31/12/2023 14:30:45` |
+| **CollationLocale** | Idioma para ordenação de textos | `pt-BR` (Português do Brasil) |
 
-### **2.2. Configuração de Pastas (Caminhos de Arquivos)**
-O script define **onde os dados serão buscados e salvos**, utilizando **caminhos de pasta** (chamados de *"layers"* ou camadas). Cada camada tem uma função específica:
+### **2.2. Configurações de Calendário**
+| Configuração | Descrição |
+|--------------|-----------|
+| **FirstWeekDay** | Primeiro dia da semana (6 = domingo) |
+| **FirstMonthOfYear** | Primeiro mês do ano (1 = janeiro) |
+| **MonthNames** | Nomes abreviados dos meses (ex: `jan`, `fev`) |
+| **LongMonthNames** | Nomes completos dos meses (ex: `janeiro`, `fevereiro`) |
+| **DayNames** | Dias da semana abreviados (ex: `seg`, `ter`) |
+| **LongDayNames** | Dias da semana por extenso (ex: `segunda-feira`) |
 
-| Variável | Descrição | Exemplo de Uso |
-|----------|-----------|----------------|
-| **`bronze_layer`** | Local onde os dados **brutos** (sem tratamento) são armazenados. | `lib://.../01. Bronze/` |
-| **`silver_layer`** | Local para dados **parcialmente tratados** (não usado neste script). | `lib://.../02. Silver/` |
-| **`gold_layer`** | Local para dados **prontos para análise** (não usado neste script). | `lib://.../03. Gold/` |
-| **`manual_source`** | Pasta com **arquivos manuais** (planilhas Excel). | `lib://.../02. Manual Source/` |
-| **`ti_layer`** | Pasta com dados **extraídos de sistemas internos** (como SAP). | `lib://Staging Recursos Humanos/` |
-| **`external_layer`** | Pasta com dados **externos** (de outras fontes). | `lib://.../04. Fontes Externas/` |
+### **2.3. Configurações de Unidades Numéricas**
+Define abreviações para valores grandes ou pequenos, como:
+- `k` = mil (`1.000`)
+- `M` = milhão (`1.000.000`)
+- `m` = milésimo (`0,001`)
 
 ---
-## **3. Processamento dos Dados**
-O script **carrega dados de diferentes fontes**, como arquivos **QVD** (formato do Qlik) e **Excel**, e os salva na camada *Bronze* para uso futuro.
+
+## **3. Definição dos Caminhos de Arquivos**
+O script define **pastas (ou "caminhos")** onde os dados serão **lidos** e **salvos**. Essas pastas são organizadas em **camadas** (Bronze, Silver, Gold), que representam diferentes estágios de preparação dos dados:
+
+| Variável | Descrição | Exemplo de Caminho |
+|----------|-----------|---------------------|
+| **bronze_layer** | Local onde os dados **brutos** (sem tratamento) são armazenados. | `lib://Eldorado Data Folder/.../01. Bronze/` |
+| **silver_layer** | Local para dados **parcialmente tratados**. | `lib://Eldorado Data Folder/.../02. Silver/` |
+| **gold_layer** | Local para dados **prontos para análise**. | `lib://Eldorado Data Folder/.../03. Gold/` |
+| **manual_source** | Pasta com **planilhas manuais** (Excel). | `lib://Eldorado Data Folder/.../02. Manual Source/` |
+| **ti_layer** | Dados extraídos de **sistemas internos** (como SAP). | `lib://Staging Recursos Humanos/` |
+| **external_layer** | Dados de **fontes externas**. | `lib://Eldorado Data Folder/.../04. Fontes Externas/` |
+
+---
+## **4. Processamento dos Dados**
+O script **carrega dados de diferentes fontes**, como arquivos `.qvd` (formato do Qlik) e planilhas `.xlsx` (Excel), e os **armazena na camada Bronze** para uso futuro.
 
 Cada seção do script é responsável por **um tipo específico de dado**, como:
-- **Headcount** (número de funcionários).
-- **Salários e cargos**.
-- **Hierarquia organizacional**.
-- **Movimentações de funcionários**.
-- **Dados de filiais e centros de custo**.
+- **Headcount** (número de funcionários)
+- **Salários**
+- **Hierarquia organizacional**
+- **Cargos e funções**
+- **Centros de custo**
+- **Movimentações de funcionários**
+
+Abaixo, detalhamos cada parte:
 
 ---
 
-### **3.1. Dados de Headcount (Número de Funcionários)**
-#### **a) Headcount Atual (`bz_headcount_f`)**
+### **4.1. Headcount (Número de Funcionários)**
+#### **a) Headcount Atual (bz_headcount_f)**
 - **O que faz?**
-  - Carrega dados **atuais** sobre o número de funcionários da empresa.
-  - Esses dados vêm de um arquivo chamado **`0STA_RHRMV012_001.qvd`** (gerado por um sistema interno).
+  Carrega dados do **número atual de funcionários** de um arquivo interno (`0STA_RHRMV012_001.qvd`).
 - **Para que serve?**
-  - Permite saber **quantos funcionários estão ativos** em um determinado momento.
+  Saber quantos funcionários a empresa tem **hoje**.
 - **Onde salva?**
-  - Na camada *Bronze*, como **`bz_headcount_f.QVD`**.
+  Na camada **Bronze**, como `bz_headcount_f.QVD`.
 
-#### **b) Headcount Histórico (`bz_headcount_hist_f`)**
+#### **b) Headcount Histórico (2014 a 2018) (bz_headcount_hist_f)**
 - **O que faz?**
-  - Carrega dados **históricos** (de 2014 a 2018) sobre o número de funcionários.
-  - Esses dados vêm de uma **planilha Excel** (`hc_historica_f.xlsx`).
+  Carrega dados históricos de funcionários de uma **planilha Excel** (`hc_historica_f.xlsx`).
 - **Para que serve?**
-  - Permite **comparar a evolução do número de funcionários ao longo dos anos**.
+  Analisar a **evolução do número de funcionários** ao longo dos anos.
 - **Onde salva?**
-  - Na camada *Bronze*, como **`bz_headcount_hist_f.QVD`**.
+  Na camada **Bronze**, como `bz_headcount_hist_f.QVD`.
 
-#### **c) Headcount Mais Recente (`bz_headcount_latest_f`)**
+#### **c) Headcount Mais Recente (bz_headcount_latest_f)**
 - **O que faz?**
-  - Carrega dados **mais atualizados** sobre funcionários, incluindo informações de **salário**.
-  - Renomeia algumas colunas para facilitar o entendimento (ex: `"Funcionário (Salário)"` vira `"Funcionário"`).
+  Carrega informações **detalhadas dos funcionários** (como salários e códigos) de um arquivo interno (`0STA_DRMFUNSAL_001.qvd`).
 - **Para que serve?**
-  - Fornece uma **visão detalhada dos funcionários ativos**, com dados de remuneração.
+  Ter uma visão **atualizada e detalhada** de cada funcionário.
 - **Onde salva?**
-  - Na camada *Bronze*, como **`bz_headcount_latest_f.QVD`**.
+  Na camada **Bronze**, como `bz_headcount_latest_f.QVD`.
 
 ---
 
-### **3.2. Dados de Pessoas e Hierarquia**
-#### **a) Informações Pessoais (`bz_pessoa_d`)**
+### **4.2. Dados de Pessoas (bz_pessoa_d)**
 - **O que faz?**
-  - Carrega dados **pessoais dos funcionários** (nome, documento, etc.).
-  - Vem do arquivo **`0STA_DRMPESSOA_001.qvd`**.
+  Carrega informações **pessoais dos funcionários** (como nome, documento, dados cadastrais) de um arquivo interno (`0STA_DRMPESSOA_001.qvd`).
 - **Para que serve?**
-  - Permite **identificar cada funcionário** e cruzar com outros dados (como salário e cargo).
+  Manter um **cadastro completo** de cada colaborador.
 - **Onde salva?**
-  - Na camada *Bronze*, como **`bz_pessoa_d.QVD`**.
-
-#### **b) Hierarquia Organizacional (`bz_hierarquia_d`)**
-- **O que faz?**
-  - Carrega dados sobre a **estrutura hierárquica** da empresa (quem reporta a quem).
-  - Vem do arquivo **`0STA_RHRMV007_001.qvd`**.
-- **Para que serve?**
-  - Ajuda a **visualizar a organização por áreas e gestores**.
-- **Onde salva?**
-  - Na camada *Bronze*, como **`bz_hierarquia_d.QVD`**.
+  Na camada **Bronze**, como `bz_pessoa_d.QVD`.
 
 ---
 
-### **3.3. Dados de Cargos, Salários e Filiais**
-#### **a) Cargos e Funções (`bz_excel_funcao_d`)**
+### **4.3. Hierarquia Organizacional (bz_hierarquia_d)**
 - **O que faz?**
-  - Carrega uma **lista de cargos** da empresa, com detalhes como:
-    - Nome do cargo.
-    - **CBO** (Classificação Brasileira de Ocupações).
-    - Requisitos (formação, cursos, CNH).
-    - Grupo salarial.
-  - Vem de uma **planilha Excel** (`funcoes_d.xlsx`).
+  Carrega dados sobre a **estrutura hierárquica** da empresa (quem reporta a quem, cargos, departamentos).
 - **Para que serve?**
-  - Permite **classificar funcionários por cargo** e entender requisitos e salários associados.
+  Entender a **organização interna** e as relações entre áreas.
 - **Onde salva?**
-  - Na camada *Bronze*, como **`bz_excel_funcao_d.QVD`**.
-
-#### **b) Filiais (`bz_excel_filial_d`)**
-- **O que faz?**
-  - Carrega uma lista de **filiais da empresa**, com código e nome.
-  - Vem de uma **planilha Excel** (`filial_d.xlsx`).
-- **Para que serve?**
-  - Ajuda a **identificar em qual unidade cada funcionário trabalha**.
-- **Onde salva?**
-  - Na camada *Bronze*, como **`bz_excel_filial_d.QVD`**.
-
-#### **c) Tabelas Salariais (`bz_excel_salario_d`)**
-- **O que faz?**
-  - Carrega a **tabela de salários** da empresa (faixas salariais por cargo).
-  - Vem de uma **planilha Excel** (`tabela_salarial_d.xlsx`).
-- **Para que serve?**
-  - Permite **comparar salários pagos com as faixas definidas**.
-- **Onde salva?**
-  - Na camada *Bronze*, como **`bz_excel_range_salario_d.QVD`**.
+  Na camada **Bronze**, como `bz_hierarquia_d.QVD`.
 
 ---
 
-### **3.4. Dados de Orçamento e Centros de Custo**
-#### **a) Orçamento Histórico de Headcount (`bz_excel_hc_orcamento_historico_f`)**
+### **4.4. Cargos e Funções (bz_excel_funcao_d)**
 - **O que faz?**
-  - Carrega dados de **previsão (orçamento) de número de funcionários** ao longo do tempo.
-  - Vem de uma **planilha Excel** (`hc_orcamento_historico.xlsx`).
+  Carrega uma **planilha Excel** (`funcoes_d.xlsx`) com detalhes sobre:
+  - Cargos (ex: "Analista", "Gerente")
+  - Salários associados
+  - Requisitos (ex: formação, cursos, CNH)
+  - Classificações (ex: grupo de cargo, carreira)
 - **Para que serve?**
-  - Permite **comparar o número real de funcionários com o planejado**.
+  Padronizar as **descrições de cargos** e seus requisitos.
 - **Onde salva?**
-  - Na camada *Bronze*, como **`bz_excel_hc_orcamento_historico_f.QVD`**.
-
-#### **b) Estrutura de Centros de Custo (`bz_excel_estrutura_cc_d`)**
-- **O que faz?**
-  - Carrega a **estrutura de centros de custo** (áreas da empresa e seus códigos).
-  - Vem de uma **planilha Excel** (`centro_de_custo_d.xlsx`).
-- **Para que serve?**
-  - Ajuda a **agrupar despesas e funcionários por área**.
-- **Onde salva?**
-  - Na camada *Bronze*, como **`bz_excel_estrutura_cc_d.QVD`**.
-
-#### **c) Centros de Custo Externos (`bz_externo_centro_custo_d`)**
-- **O que faz?**
-  - Carrega dados de **centros de custo de fontes externas**.
-  - Vem de um arquivo **QVD** (`TRFN_CC.CL.qvd`).
-- **Para que serve?**
-  - Complementa informações de centros de custo com dados de outros sistemas.
-- **Onde salva?**
-  - Na camada *Bronze*, como **`bz_externo_centro_custo_d.QVD`**.
+  Na camada **Bronze**, como `bz_excel_funcao_d.QVD`.
 
 ---
 
-### **3.5. Movimentações e Posições**
-#### **a) Movimentações de Funcionários (`bz_movimentos_f`)**
+### **4.5. Filiais (bz_excel_filial_d)**
 - **O que faz?**
-  - Carrega registros de **admissões, demissões, transferências e outras movimentações**.
-  - Vem do arquivo **`0STA_RHRMV043_001.qvd`**.
+  Carrega uma **lista de filiais** (unidades da empresa) de uma planilha (`filial_d.xlsx`), com:
+  - Código da filial
+  - Nome da filial
 - **Para que serve?**
-  - Permite **analisar a rotatividade (turnover) e mudanças na equipe**.
+  Identificar **onde cada funcionário trabalha**.
 - **Onde salva?**
-  - Na camada *Bronze*, como **`bz_movimentos_f.QVD`**.
-
-#### **b) Posições na Empresa (`bz_posicoes_f`)**
-- **O que faz?**
-  - Carrega dados sobre **posições (vagas) disponíveis na empresa**.
-  - Vem do arquivo **`0STA_RHRMV033_001.qvd`**.
-- **Para que serve?**
-  - Ajuda a **mapear vagas abertas e ocupadas**.
-- **Onde salva?**
-  - Na camada *Bronze*, como **`bz_posicoes_f.QVD`**.
-
-#### **c) Headcount Offshore (`bz_headcount_offshore_f`)**
-- **O que faz?**
-  - Carrega dados sobre **funcionários que trabalham fora do Brasil (offshore)**.
-  - Vem do arquivo **`0STA_RHRMV046_001.qvd`**.
-- **Para que serve?**
-  - Permite **analisar a força de trabalho em outros países**.
-- **Onde salva?**
-  - Na camada *Bronze*, como **`bz_headcount_offshore_f.QVD`**.
-
-#### **d) Posições Abertas (`bz_excel_posicoes_f`)**
-- **O que faz?**
-  - Carrega uma lista de **vagas em aberto** na empresa.
-  - Vem de uma **planilha Excel** (`posicoes_abertas.xlsx`).
-- **Para que serve?**
-  - Ajuda a **acompanhar o processo de contratação**.
-- **Onde salva?**
-  - Na camada *Bronze*, como **`bz_excel_posicoes_f.QVD`**.
+  Na camada **Bronze**, como `bz_excel_filial_d.QVD`.
 
 ---
 
-## **4. Fluxo Geral do Script**
-1. **Configurações iniciais** (formatos de data, moeda, pastas).
-2. **Carregamento dos dados** de diferentes fontes (QVD, Excel).
-3. **Salvamento na camada *Bronze*** (dados brutos para uso futuro).
-4. **Exclusão das tabelas temporárias** (para liberar memória).
+### **4.6. Tabelas Salariais (bz_excel_salario_d)**
+- **O que faz?**
+  Carrega uma **planilha com faixas salariais** (`tabela_salarial_d.xlsx`) para diferentes cargos.
+- **Para que serve?**
+  Definir **padronizações de salários** por função.
+- **Onde salva?**
+  Na camada **Bronze**, como `bz_excel_range_salario_d.QVD`.
 
 ---
-## **5. Resumo dos Arquivos Gerados**
-Todos os dados processados são salvos na **camada *Bronze*** com o prefixo **`bz_`** (de *"bronze"*). Alguns exemplos:
 
-| Arquivo Gerado | Descrição |
-|----------------|-----------|
-| `bz_headcount_f.QVD` | Número atual de funcionários. |
-| `bz_pessoa_d.QVD` | Dados pessoais dos funcionários. |
-| `bz_excel_funcao_d.QVD` | Lista de cargos e requisitos. |
-| `bz_movimentos_f.QVD` | Registros de admissões e demissões. |
-| `bz_excel_estrutura_cc_d.QVD` | Estrutura de centros de custo. |
+### **4.7. Orçamento Histórico de Headcount (bz_excel_hc_orcamento_historico_f)**
+- **O que faz?**
+  Carrega dados de **previsão de contratações** (orcamento_historico.xlsx).
+- **Para que serve?**
+  Comparar o **planejado vs. real** em relação ao número de funcionários.
+- **Onde salva?**
+  Na camada **Bronze**, como `bz_excel_hc_orcamento_historico_f.QVD`.
 
 ---
-## **6. Considerações Finais**
-Este script **não faz análises diretas**, mas **prepara os dados** para que sejam usados em relatórios e dashboards no **Qlik Sense/QlikView**.
 
-Seu principal objetivo é **centralizar informações de RH em um formato padronizado**, facilitando:
-- **Análise de headcount** (número de funcionários).
-- **Controle de salários e cargos**.
-- **Acompanhamento de movimentações** (contratações, demissões).
-- **Gestão de orçamento e centros de custo**.
+### **4.8. Centros de Custo (bz_excel_estrutura_cc_d)**
+- **O que faz?**
+  Carrega uma **estrutura de centros de custo** (áreas/departamentos) de uma planilha (`centro_de_custo_d.xlsx`).
+- **Para que serve?**
+  Associar **despesas e funcionários às suas áreas**.
+- **Onde salva?**
+  Na camada **Bronze**, como `bz_excel_estrutura_cc_d.QVD`.
 
 ---
-**Fim da Documentação**
+
+### **4.9. Movimentações de Funcionários (bz_movimentos_f)**
+- **O que faz?**
+  Carrega registros de **admissões, demissões, transferências** (`0STA_RHRMV043_001.qvd`).
+- **Para que serve?**
+  Acompanhar o **fluxo de entrada e saída de pessoas**.
+- **Onde salva?**
+  Na camada **Bronze**, como `bz_movimentos_f.QVD`.
+
+---
+
+### **4.10. Posições (bz_posicoes_f e bz_excel_posicoes_f)**
+- **O que faz?**
+  - `bz_posicoes_f`: Carrega dados de **posições abertas** em sistemas internos.
+  - `bz_excel_posicoes_f`: Carrega uma **planilha com vagas em aberto** (`posicoes_abertas.xlsx`).
+- **Para que serve?**
+  Controlar **vagas disponíveis** para contratação.
+- **Onde salva?**
+  Na camada **Bronze**, como `bz_posicoes_f.QVD` e `bz_excel_posicoes_f.QVD`.
+
+---
+
+### **4.11. Centros de Custo Externos (bz_externo_centro_custo_d)**
+- **O que faz?**
+  Carrega dados de **centros de custo de sistemas externos** (`TRFN_CC.CL.qvd`).
+- **Para que serve?**
+  Integrar informações de **outros sistemas** com os dados de RH.
+- **Onde salva?**
+  Na camada **Bronze**, como `bz_externo_centro_custo_d.QVD`.
+
+---
+
+## **5. Fluxo Geral do Script**
+1. **Configurações iniciais** (formatação, idiomas, caminhos).
+2. **Leitura dos dados** (de arquivos `.qvd` e planilhas `.xlsx`).
+3. **Armazenamento na camada Bronze** (dados brutos, sem tratamento avançado).
+4. **Fim do processo** (`EXIT Script`).
+
+---
+## **6. Resumo Visual**
+```mermaid
+graph TD
+    A[Início] --> B[Configura formatações e caminhos]
+    B --> C[Carrega dados de funcionários]
+    B --> D[Carrega cargos e salários]
+    B --> E[Carrega hierarquia e filiais]
+    B --> F[Carrega movimentações e posições]
+    C --> G[Salva em Bronze]
+    D --> G
+    E --> G
+    F --> G
+    G --> H[Fim]
+```
+
+---
+## **7. Considerações Finais**
+Este script **não faz análises**, mas **prepara os dados** para que sejam usados em relatórios e dashboards. Seu papel é **centralizar informações de RH** em um formato padronizado, facilitando futuras consultas.
+
+Todas as tabelas geradas são armazenadas na **camada Bronze**, que serve como **base para tratamentos mais avançados** (nas camadas Silver e Gold).

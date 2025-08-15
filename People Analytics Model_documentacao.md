@@ -1,155 +1,167 @@
 # Documentação Técnica
 
 **Arquivo:** `People Analytics Model.qvs`  
-**Última atualização:** 15/08/2025 09:45:22
+**Última atualização:** 15/08/2025 11:56:24
 
-# **Documentação do Script QlikView (QVS) – Estrutura de Dados para Análise de Recursos Humanos e Operações**
+# **Documentação do Script QVS – Estrutura de Dados para Análise de Recursos Humanos e Operações**
 
----
+Este documento explica, de forma clara e organizada, o funcionamento de um script utilizado para preparar e relacionar dados em um sistema de análise de informações. O objetivo principal é integrar dados de **Recursos Humanos (RH)** e **operacionais** (como produção, vendas e custos) para que possam ser visualizados e analisados de maneira consistente.
 
-## **1. Introdução**
-Este documento explica, de forma clara e organizada, o funcionamento de um script utilizado em uma ferramenta de análise de dados chamada **QlikView/Qlik Sense**. O objetivo desse script é **preparar e organizar informações** sobre funcionários, custos, produção e receitas de uma empresa, para que elas possam ser analisadas de maneira integrada em relatórios e painéis (*dashboards*).
-
-Em termos simples, o script:
-- **Carrega dados** de diferentes áreas (como Recursos Humanos, Finanças e Produção).
-- **Cria conexões (links)** entre essas informações para que possam ser cruzadas.
-- **Formata os dados** para que fiquem padronizados (moeda, datas, números, etc.).
+O script não altera os dados originais, mas os organiza em uma estrutura que facilita a criação de relatórios, painéis e tomadas de decisão baseadas em informações confiáveis.
 
 ---
 
-## **2. Configurações Iniciais**
-Antes de carregar os dados, o script define algumas **regras de formatação** para garantir que números, datas e moedas apareçam de forma consistente. Isso é importante para evitar confusões (por exemplo, diferenciar milhares de reais com pontos ou vírgulas).
+## **1. Configurações Iniciais**
+Antes de carregar os dados, o script define padrões de formatação para garantir que números, datas, moedas e textos sejam exibidos de maneira uniforme e adequada ao português do Brasil.
 
-### **2.1. Formatação de Números, Moedas e Datas**
-| Configuração               | Descrição                                                                                     | Exemplo de Aplicação                     |
-|----------------------------|-----------------------------------------------------------------------------------------------|-------------------------------------------|
-| **ThousandSep='.'**        | Separa milhares com ponto (ex: 1.000).                                                       | 1.500 funcionários                       |
-| **DecimalSep=','**         | Separa decimais com vírgula (ex: 3,14).                                                      | R$ 12,50                                  |
-| **MoneyFormat**            | Formato da moeda brasileira (R$), com duas casas decimais e sinal negativo para valores negativos. | R$ 1.250,00 ou -R$ 300,00                 |
-| **DateFormat='DD.MM.YYYY'**| Datas no formato **dia.mês.ano** (ex: 15.05.2023).                                           | 31.12.2022                                |
-| **CollationLocale='pt-BR'**| Define que o idioma padrão é **português do Brasil**, para ordenação correta de palavras.     | Ordenar "São Paulo" antes de "Santos".    |
+### **1.1. Formatação de Números e Moedas**
+- **Separador de milhar:** `.` (ponto) → Exemplo: `1.000` (mil).
+- **Separador decimal:** `,` (vírgula) → Exemplo: `R$ 1.000,50`.
+- **Formato de moeda:** `R$` (Real brasileiro), com duas casas decimais e sinal negativo para valores abaixo de zero.
+  - Exemplo: `R$ 1.234,56` (positivo) ou `-R$ 1.234,56` (negativo).
 
-### **2.2. Definição de Caminhos para os Dados**
-O script indica **onde os dados estão armazenados** usando "caminhos" (como pastas em um computador). Cada tipo de dado está em uma pasta específica:
+### **1.2. Formatação de Data e Hora**
+- **Data:** `DD.MM.AAAA` → Exemplo: `15.05.2024` (15 de maio de 2024).
+- **Hora:** `hh:mm:ss` → Exemplo: `14:30:00`.
+- **Data + Hora:** `DD.MM.AAAA hh:mm:ss` → Exemplo: `15.05.2024 14:30:00`.
 
-| Variável               | Descrição                                                                                     | Exemplo de Conteúdo                       |
-|------------------------|-----------------------------------------------------------------------------------------------|-------------------------------------------|
-| **bronze_layer**       | Dados brutos (não processados).                                                              | Planilhas ou arquivos originais.          |
-| **silver_layer**       | Dados parcialmente tratados (limpos e organizados).                                          | Tabelas com informações corrigidas.       |
-| **gold_layer**         | Dados prontos para análise (já validados e estruturados).                                    | Tabelas usadas em relatórios.             |
-| **manual_source**      | Dados inseridos manualmente (como planilhas Excel).                                           | Orçamentos ou metas digitadas.            |
-| **ti_layer**           | Dados temporários ou em processo de transferência.                                           | Arquivos em espera para processamento.    |
+### **1.3. Configurações de Calendário**
+- **Primeiro dia da semana:** Domingo (definido como `6`).
+- **Primeiro mês do ano:** Janeiro (definido como `1`).
+- **Idioma:** Português do Brasil (`pt-BR`), para nomes de meses e dias da semana.
+  - Exemplo: `janeiro`, `fevereiro`, `segunda-feira`, `terça-feira`, etc.
 
----
-## **3. Carregamento dos Dados**
-O script carrega dois tipos principais de informações:
-1. **Fatos (Tabelas de Eventos)**: Registros de coisas que aconteceram (ex: contratações, demissões, vendas).
-2. **Dimensões (Tabelas de Referência)**: Informações descritivas (ex: nomes de funcionários, departamentos, calendário).
-
-### **3.1. Tabelas de Fatos (O Que Aconteceu)**
-Essas tabelas registram **eventos** com detalhes como data, pessoa envolvida, valores, etc.
-
-| Tabela                          | Descrição                                                                                     | Exemplo de Uso                             |
-|---------------------------------|-----------------------------------------------------------------------------------------------|--------------------------------------------|
-| **gd_headcount_f**              | Quantidade de funcionários ativos em cada período.                                           | "Em janeiro/2023, havia 500 funcionários."|
-| **gd_termination_f**            | Registros de demissões (quem saiu, quando e por quê).                                        | "10 pessoas foram demitidas em março."     |
-| **gd_excel_orcamento_historico_f** | Orçamentos planejados para contratações (metas de RH).                                      | "Meta: contratar 20 pessoas em 2023."     |
-| **gd_posicoes_f**               | Posições (vagas) disponíveis na empresa.                                                     | "Há 5 vagas abertas no departamento X."    |
-| **gd_eventos_f**                | Eventos relacionados a funcionários (ex: promoções, transferências).                         | "João foi promovido em 15/06/2023."        |
-| **gd_custo_origem_opex_f**      | Custos operacionais (despesas da empresa).                                                   | "O departamento Y gastou R$ 10.000 em abril." |
-| **gd_producao_celulose_f**      | Dados de produção de celulose (quantidade produzida).                                        | "Produzimos 1.000 toneladas em maio."      |
-| **gd_vendas_celulose_f**        | Vendas de celulose (quantidade e receita).                                                   | "Vendemos 800 toneladas em junho."        |
-| **gd_receita_liquida_f**        | Receita líquida da empresa (faturamento menos custos).                                        | "Receita em julho: R$ 500.000."            |
-
-### **3.2. Tabelas de Dimensões (Informações de Referência)**
-Essas tabelas **descrevem** os dados das tabelas de fatos (ex: quem é o funcionário, qual seu cargo, etc.).
-
-| Tabela                  | Descrição                                                                                     | Exemplo de Conteúdo                       |
-|-------------------------|-----------------------------------------------------------------------------------------------|-------------------------------------------|
-| **gd_calendario_d**     | Calendário com datas, dias da semana, meses, anos.                                            | "15/05/2023 é uma segunda-feira."          |
-| **gd_hierarquia_d**     | Estrutura hierárquica da empresa (quem reporta a quem).                                      | "Maria é gerente de João."                 |
-| **gd_funcao_d**         | Cargos e funções dos funcionários.                                                           | "Analista de RH", "Supervisor de Produção".|
-| **gd_eldorado_entity_d**| Unidades ou filiais da empresa.                                                               | "Unidade São Paulo", "Unidade Bahia".      |
-| **gd_employee_d**       | Dados dos funcionários (nome, matrícula, etc.).                                              | "Nome: Carlos, Matrícula: 12345."         |
-| **gd_situacao_d**       | Situação do funcionário (ativo, afastado, demitido).                                          | "Ativo", "Afastado por licença médica."    |
-| **gd_centro_de_custo_d**| Departamentos ou áreas da empresa (ex: RH, Finanças).                                        | "Centro de Custo: TI."                    |
+### **1.4. Caminhos dos Arquivos (Pastas de Dados)**
+O script define onde os dados estão armazenados, organizados em **camadas** (como pastas em um computador):
+- **Bronze:** Dados brutos (originais, sem tratamento).
+- **Silver:** Dados limpos e padronizados.
+- **Gold:** Dados prontos para análise (os utilizados neste script).
+- **Manual Source:** Dados inseridos manualmente (como planilhas).
+- **Fontes Externas:** Dados de fora da empresa (como pesquisas ou bases públicas).
 
 ---
-## **4. Criação de Links entre os Dados**
-Para que as informações possam ser **cruzadas** (ex: relacionar um funcionário ao seu departamento e aos custos gerados por ele), o script cria uma **chave de ligação única** chamada **`link_key`**.
+## **2. Carregamento dos Dados**
+O script carrega dois tipos de informações:
+1. **Fatos (Tabelas de Eventos):** Registros de ocorrências, como admissões, demissões, produção, vendas, etc.
+2. **Dimensões (Tabelas de Referência):** Informações descritivas, como nomes de funcionários, cargos, centros de custo, etc.
 
-### **4.1. Como Funciona o `link_key`**
-- É um **código gerado automaticamente** que identifica cada combinação única de dados (ex: funcionário + data + departamento).
-- Permite **conectar tabelas diferentes** sem repetir informações.
-- Exemplo:
-  - Na tabela de funcionários (`gd_headcount_f`), o `link_key` pode ser:
-    `Data: 01/01/2023 + Funcionário: João + Departamento: Produção`.
-  - Na tabela de custos (`gd_custo_origem_opex_f`), o mesmo `link_key` permite saber quanto João custou para a empresa naquele mês.
+### **2.1. Tabelas de Fatos (O Que Aconteceu?)**
+São carregadas as seguintes tabelas com dados operacionais e de RH:
 
-### **4.2. Tabela `Link` (Conexão Final)**
-O script cria uma tabela chamada **`Link`** que **centraliza todas as chaves** e preenche os campos vazios com valores padrão (ex: `''` para texto ou `0` para números). Isso garante que todas as tabelas possam ser relacionadas corretamente.
+| **Tabela**                     | **Descrição**                                                                 | **Exemplo de Uso**                          |
+|--------------------------------|-------------------------------------------------------------------------------|---------------------------------------------|
+| **gd_headcount_f**             | Quantidade de funcionários ativos em um determinado dia.                     | "Em janeiro de 2024, havia 500 funcionários na fábrica X." |
+| **gd_termination_f**           | Registros de demissões (quem saiu, quando e por quê).                        | "10 funcionários pediram demissão em março." |
+| **gd_excel_orcamento_historico_f** | Orçamento planejado de funcionários (metas de contratação).              | "O plano era ter 550 funcionários em 2024." |
+| **gd_posicoes_f**              | Posições (vagas) disponíveis na empresa, mesmo que não estejam ocupadas.      | "Existem 20 vagas abertas para o cargo Y."  |
+| **gd_eventos_f**               | Eventos relacionados a funcionários (treinamentos, promoções, etc.).         | "50 funcionários fizeram treinamento em segurança em abril." |
+| **gd_custo_origem_opex_f**     | Custos operacionais (despesas da empresa, como salários, energia, etc.).     | "O custo com salários em fevereiro foi R$ 200.000,00." |
+| **gd_producao_celulose_f**     | Produção de celulose (quantidade produzida por dia/mês).                     | "Em janeiro, foram produzidas 1.000 toneladas." |
+| **gd_vendas_celulose_f**       | Vendas de celulose (quantidade vendida e faturamento).                        | "Vendemos 800 toneladas em fevereiro."      |
+| **gd_receita_liquida_f**       | Receita líquida da empresa (faturamento após descontos).                      | "A receita em março foi R$ 5.000.000,00."     |
 
----
-## **5. Exemplo Prático: Como os Dados São Usados**
-Imagine que um gestor queira saber:
-> **"Quantos funcionários do departamento de Produção foram demitidos em 2023, e qual foi o impacto nos custos?"**
+#### **Como os Dados São Identificados?**
+Cada tabela de fatos recebe um **`link_key`**, um código único gerado automaticamente que serve como uma "etiqueta" para relacionar as informações. Esse código é criado a partir de dados como:
+- Data (`date_key`),
+- Funcionário (`pessoa`),
+- Cargo (`funcao_sk`),
+- Centro de custo (`centro_de_custo_sk`), entre outros.
 
-O script permite cruzar:
-1. **Tabela de demissões (`gd_termination_f`)** → Quem saiu e quando.
-2. **Tabela de departamentos (`gd_centro_de_custo_d`)** → Filtrar apenas "Produção".
-3. **Tabela de custos (`gd_custo_origem_opex_f`)** → Verificar as despesas antes e depois das demissões.
-4. **Tabela de calendário (`gd_calendario_d`)** → Filtrar pelo ano de 2023.
-
-**Resultado:** Um relatório mostrando:
-- 15 demissões no departamento de Produção em 2023.
-- Redução de R$ 120.000 nos custos operacionais após as demissões.
-
----
-## **6. Finalização do Script**
-Ao final, o script:
-1. **Remove campos duplicados** das tabelas originais (para economizar espaço).
-2. **Encerra a execução** com o comando `exit script`.
+**Exemplo:**
+Se um funcionário foi admitido em `01.01.2024` no cargo `Analista` no centro de custo `Fábrica A`, o sistema gera um `link_key` único para esse registro. Isso permite vincular esse evento a outras informações, como seu salário ou treinamentos.
 
 ---
-## **7. Resumo Visual**
-```
-┌───────────────────────┐    ┌───────────────────────┐    ┌───────────────────────┐
-│  Tabelas de Fatos     │    │  Tabelas de Dimensões │    │       Tabela Link      │
-│ (Eventos)             │    │ (Descrições)          │    │ (Conexão entre dados)  │
-│ - Contratações        │    │ - Funcionários        │    │ - Chaves únicas       │
-│ - Demissões           │    │ - Departamentos       │    │   (link_key)          │
-│ - Custos              │    │ - Calendário          │    │ - Relações entre      │
-│ - Produção            │    │ - Cargos             │    │   todas as tabelas    │
-└───────────┬───────────┘    └───────────┬───────────┘    └───────────────────────┘
-            │                            │
-            └───────────────┬────────────┘
-                            │
-                            ▼
-                ┌───────────────────────┐
-                │   Relatórios e        │
-                │   Dashboards          │
-                │ (Análises integradas)│
-                └───────────────────────┘
-```
+
+### **2.2. Tabelas de Dimensões (Quem? O Quê? Onde?)**
+São informações descritivas que ajudam a entender **quem são os funcionários**, **quais são os cargos**, **onde trabalham**, etc.
+
+| **Tabela**                 | **Descrição**                                                                 | **Exemplo**                                |
+|----------------------------|-------------------------------------------------------------------------------|--------------------------------------------|
+| **gd_calendario_d**        | Datas e informações de calendário (feriados, dias úteis, etc.).             | "01.01.2024 foi feriado (Ano Novo)."       |
+| **gd_hierarquia_d**        | Estrutura hierárquica da empresa (gerentes, diretores, etc.).               | "João é gerente da área de Produção."      |
+| **gd_funcao_d**            | Cargos existentes na empresa (Analista, Operador, etc.).                     | "Cargo: Operador de Máquinas."             |
+| **gd_eldorado_entity_d**   | Unidades da empresa (fábricas, escritórios, filiais).                        | "Fábrica de Três Lagoas - MS."              |
+| **gd_employee_d**          | Dados dos funcionários (nome, matrícula, etc.).                              | "Maria Silva, Matrícula 12345."            |
+| **gd_situacao_d**          | Situação do funcionário (ativo, afastado, etc.).                              | "Situação: Ativo."                         |
+| **gd_tipo_funcionario_d**  | Tipo de contratação (CLT, temporário, estagiário, etc.).                      | "Tipo: CLT."                               |
+| **gd_centro_de_custo_d**   | Áreas ou departamentos que geram custos (Produção, RH, etc.).                 | "Centro de Custo: Manutenção."             |
+| **gd_conta_contabil_d**    | Contas contábeis (salários, energia, matérias-primas, etc.).                  | "Conta: Salários e Encargos."              |
+| **gd_evento_d**            | Tipos de eventos (treinamento, promoção, advertência, etc.).                   | "Evento: Treinamento de Segurança."        |
 
 ---
-## **8. Glossário de Termos Simplificados**
-| Termo               | Significado                                                                                   |
-|---------------------|-----------------------------------------------------------------------------------------------|
-| **QVD**             | Arquivo que armazena dados no Qlik (similar a uma planilha Excel, mas otimizado).              |
-| **Fatos**           | Registros de eventos (ex: uma venda, uma contratação).                                        |
-| **Dimensões**       | Informações descritivas (ex: nome de um produto, categoria de um funcionário).                |
-| **`link_key`**      | Código único que conecta informações de tabelas diferentes.                                  |
-| **`Load`**          | Comando para carregar dados de um arquivo.                                                   |
-| **`Resident`**      | Comando para usar dados já carregados na memória.                                             |
-| **`Drop Fields`**   | Remover colunas desnecessárias para otimizar o espaço.                                        |
+## **3. Relacionamento dos Dados (Tabela "Link")**
+Após carregar todas as tabelas, o script cria uma **tabela central chamada `Link`**, que funciona como um "índice" para conectar todas as informações.
+
+### **Como Funciona?**
+1. **Cada tabela de fatos contribui com seus registros** para a tabela `Link`, mas apenas com os campos que são relevantes.
+   - Exemplo: A tabela de **demissões (`gd_termination_f`)** não tem informações sobre produção, então esses campos ficam vazios (`''`).
+2. **O `link_key` é a chave que une tudo**:
+   - Se um registro de **produção** e um registro de **custos** têm o mesmo `link_key`, significa que estão relacionados (por exemplo, custos da produção daquele dia).
+3. **Campos não utilizados são removidos** ao final para otimizar o espaço.
+
+### **Exemplo Prático:**
+| **link_key** (código único) | **date_key** (data) | **pessoa** (funcionário) | **funcao_sk** (cargo) | **centro_de_custo_sk** (área) | **conta_contabil_sk** (despesa) |
+|----------------------------|--------------------|--------------------------|-----------------------|--------------------------------|----------------------------------|
+| ABC123                      | 01.01.2024         | João Silva              | Operador              | Produção                      | Salários                        |
+| DEF456                      | 01.01.2024         | -                        | -                     | Produção                      | Energia Elétrica                |
+
+- **Interpretação:**
+  - No dia **01.01.2024**, o funcionário **João Silva** (Operador) gerou um custo de **salário** na área de **Produção**.
+  - No mesmo dia, houve um gasto com **energia elétrica** na **Produção**, mas não está vinculado a um funcionário específico.
 
 ---
-## **9. Considerações Finais**
-Este script é uma **peça fundamental** para integrar dados de **Recursos Humanos, Finanças e Produção**, permitindo que a empresa:
-- Analise o **desempenho dos funcionários**.
-- Controle **custos e orçamentos**.
-- Relacione **produção e vendas** com a força de trabalho.
-- Tome decisões baseadas em **dados consolidados**.
+## **4. Limpeza Final**
+Ao final, o script **remove campos duplicados ou desnecessários** das tabelas originais para:
+- Evitar confusão (por exemplo, não precisamos do nome do funcionário em todas as tabelas, apenas na tabela de dimensão).
+- Otimizar o desempenho (menos dados repetidos = sistema mais rápido).
 
-Ele não altera os dados originais, apenas os **organiza e prepara** para que sejam usados em relatórios e análises.
+---
+## **5. Resumo: Para Que Serve Esse Script?**
+Este script **prepara os dados** para que possam ser usados em:
+- **Relatórios de RH:** Quantidade de funcionários, rotatividade (quem entra/sai), custos com pessoal.
+- **Análise de produção:** Relação entre funcionários, produção e vendas.
+- **Controle de custos:** Quanto se gasta em cada área (salários, energia, matérias-primas).
+- **Tomada de decisão:** Identificar padrões, como:
+  - "Quando aumentamos a produção, os custos com horas extras sobem?"
+  - "Quais áreas têm maior rotatividade de funcionários?"
+
+### **Analogia Simples:**
+Imagine que você tem:
+- **Uma lista de compras do mercado** (fatos: o que foi comprado, quando e por quanto).
+- **Uma lista de produtos** (dimensões: o que é "arroz", "feijão", etc.).
+- **Uma lista de lojas** (dimensões: onde você comprou).
+
+Esse script **junta tudo em uma planilha única**, onde você pode ver:
+- "Em janeiro, comprei 2kg de arroz na Loja A por R$ 10,00."
+- "O feijão ficou 20% mais caro na Loja B em fevereiro."
+
+Assim, você consegue **analisar seus gastos** de forma organizada.
+
+---
+## **6. Fluxo Simplificado do Script**
+
+1. **Configurações:** Define como números, datas e moedas serão exibidos.
+2. **Localiza os dados:** Indica onde estão os arquivos (pastas Bronze, Silver, Gold, etc.).
+3. **Carrega tabelas de fatos:** Dados de eventos (admissões, produção, vendas, etc.).
+   - Cada tabela recebe um `link_key` para relacionamento.
+4. **Carrega tabelas de dimensões:** Informações descritivas (funcionários, cargos, centros de custo, etc.).
+5. **Cria a tabela `Link`:** Une todos os dados em um só lugar, usando o `link_key`.
+6. **Remove dados repetidos:** Otimiza o espaço.
+7. **Finaliza:** O script está pronto para ser usado em relatórios ou painéis.
+
+---
+## **7. Exemplos de Perguntas que Podem Ser Respondidas com Esses Dados**
+| **Pergunta**                                      | **Tabelas Utilizadas**                          | **Como o `link_key` Ajuda?**                     |
+|---------------------------------------------------|------------------------------------------------|-----------------------------------------------|
+| Quantos funcionários foram admitidos em 2024?     | `gd_headcount_f` + `gd_employee_d`             | Filtra por data e conta os registros únicos.   |
+| Qual o custo médio por funcionário na área X?     | `gd_custo_origem_opex_f` + `gd_centro_de_custo_d` | Relaciona custos com o centro de custo.       |
+| A produção aumentou depois de um treinamento?    | `gd_producao_celulose_f` + `gd_eventos_f`      | Verifica se há correlação entre eventos e produção. |
+| Quais cargos têm maior rotatividade?              | `gd_termination_f` + `gd_funcao_d`             | Agrupa demissões por cargo.                   |
+
+---
+## **8. Considerações Finais**
+- **Objetivo:** Organizar dados de forma que possam ser **analisados juntos**, mesmo vindos de fontes diferentes.
+- **Benefício:** Permite criar **relatórios confiáveis** e **tomar decisões baseadas em dados**.
+- **Não altera os dados originais:** Apenas os prepara para uso em ferramentas de análise (como o Qlik Sense).
+
+Este script é como um **"organizador de informações"**, garantindo que tudo esteja no lugar certo para que gestores e analistas possam entender o que acontece na empresa.
