@@ -1,7 +1,7 @@
 # Documentação Técnica
 
 **Arquivo:** `sv_headcount.qvs`  
-**Última atualização:** 15/08/2025 13:35:57
+**Última atualização:** 15/08/2025 13:55:23
 
 # **Documentação de Regras de Negócio – Dashboard de Recursos Humanos (RH)**
 *Documentação técnica para usuários finais não técnicos*
@@ -10,246 +10,203 @@
 
 ## **1. Visão Geral**
 ### **Objetivo do Documento**
-Este documento explica as **regras de negócio** aplicadas nos indicadores do dashboard de RH, incluindo:
+Este documento explica as **regras de negócio** aplicadas aos indicadores do dashboard de RH, incluindo:
 - **O que é contado** (critérios de inclusão).
 - **O que não é contado** (critérios de exclusão).
 - **Casos especiais** (exceções e tratamentos atípicos).
-- **Como os dados são segmentados** (por período, faixa etária, tipo de contratação, etc.).
 
 ### **Como Identificar o Que Deve Ser Contado**
-Cada métrica segue critérios específicos. Para verificar se um registro deve ser incluído ou excluído:
-1. **Consulte a seção da métrica** (ex.: *Headcount*, *Turnover*).
-2. **Verifique as tabelas de inclusão/exclusão** no final do documento.
-3. **Atente-se aos casos especiais** (ex.: funcionários readmitidos, contratações temporárias).
+Cada métrica segue critérios específicos. Para verificar se um registro deve ser incluído:
+1. Confira se atende aos **critérios de inclusão**.
+2. Verifique se **não se enquadra nos critérios de exclusão**.
+3. Considere **casos especiais** (exceções).
 
 ---
 
 ## **2. Regras de Negócio por Indicador/Métrica**
 
----
-
-### **2.1 Headcount (Número de Funcionários Ativos)**
+### **2.1. Headcount (Número de Funcionários)**
 #### **Definição**
-Contagem de **funcionários ativos** na empresa em um determinado período, considerando seu status, tipo de contratação e situação cadastral.
+Quantidade de funcionários **ativos** em um determinado período, considerando contratações, demissões e afastamentos.
 
 #### **Critérios de Inclusão**
-São contados como **Headcount** os funcionários que:
-- Estão com **situação ativa** (`Situação = 'A'`, `'E'`, `'F'`, `'V'`).
-  - `A`: Ativo.
-  - `E`: Licença maternidade.
-  - `F`: Férias.
-  - `V`: Aviso prévio.
-- São do **tipo "Normal"** (`Tipo Funcionário = 'N'`).
-- Não são **estagiários** ou **aprendizes** (`Funções TEXT ≠ 'Estagiário'`).
-- Possuem **centro de custo válido** (código > 99).
-- Foram admitidos **até a data atual** (`Data Admissão ≤ Hoje`).
-- Não estão em **situações excluídas** (ex.: transferências sem ônus, matrículas apagadas).
+- Funcionários com **situação ativa** (`Situação = 'A'`).
+- Funcionários em **licenças remuneradas** (ex.: licença-maternidade, férias, afastamento médico).
+- Funcionários **contratados até a data de referência** (mesmo que a admissão seja futura, desde que cadastrados no sistema).
+- Funcionários **offshore** (marcados com `offshore = 1`).
+- Funcionários **recontratados** (com mais de uma admissão no histórico).
 
 #### **Critérios de Exclusão**
-Não são contados:
-- Funcionários com **situação inativa** (`Situação = 'D'` (demitido), `'Z'` (admissões futuras), `'9'` (matrículas apagadas)).
-- **Estagiários** (`Tipo Funcionário = 'T'`).
+- Funcionários **demitidos** (`Situação = 'D'`).
+- Funcionários com **matrícula apagada** (`Situação = 'Z'`).
+- **Estagiários** (`Tipo Funcionário = 'T'` ou `Funções TEXT` contém "Estagiário").
 - **Aprendizes** (`Tipo Funcionário = 'Z'`).
-- **Conselheiros** ou **cargos especiais** (`Funções TEXT = 'Conselheiro Adm'`, `'Conselheiro Fiscal'`).
-- Funcionários com **centro de custo inválido** (código ≤ 99 ou `#`).
-- **Funcionários offshore** (`offshore = 1`), exceto quando especificado.
-- **Funcionários readmitidos no mesmo mês** (trados como exceção).
+- Funcionários com **centro de custo inválido** (ex.: `Centro de Custo = '#'` ou menor que 100).
+- **Conselheiros e cargos especiais** (ex.: "Conselheiro Adm", "Conselheiro Fiscal").
+- Funcionários com **chapa específica excluída** (lista de IDs no script).
 
 #### **Casos Especiais**
 - **Admitidos e demitidos no mesmo mês**:
-  - São **forçadamente classificados como "C/Dem no mês"** (`Situação TEXT = 'C/Dem no mês'`).
-  - Não são contados no *Headcount* padrão, mas aparecem em relatórios de *Turnover*.
-- **Funcionários com short tenure** (demitidos antes do fim do mês de admissão):
-  - São **excluídos do Headcount**, mas registrados em métricas de rotatividade.
-- **Funcionários offshore**:
-  - São **excluídos do Headcount padrão**, mas podem ser incluídos em filtros específicos.
-- **Funcionários com múltiplas admissões** (readmitidos):
-  - São contados **apenas uma vez por pessoa**, mas a quantidade de readmissões é registrada (`qtd_readimissoes`).
+  - São contados como **headcount**, mas marcados com `short_tenure = 1` e `Situação TEXT = 'C/Dem no mês'`.
+- **Funcionários com salário fora da faixa**:
+  - Classificados em grupos como:
+    - `Menor 80%` (salário < 80% da referência).
+    - `Entre 80% e 90%`.
+    - `Acima 120%`.
+- **Funcionários sem hierarquia definida**:
+  - O gestor direto é definido como o primeiro nível válido na hierarquia (do nível 1 ao 6).
 
 ---
 
-### **2.2 Turnover (Rotatividade de Funcionários)**
+### **2.2. Turnover (Rotatividade)**
 #### **Definição**
-Taxa de **saída de funcionários** da empresa, calculada com base em demissões voluntárias e involuntárias.
+Taxa de funcionários que **saíram da empresa** em um período, considerando demissões voluntárias e involuntárias.
 
 #### **Critérios de Inclusão**
-São contadas como **Turnover** as demissões que:
-- Têm **situação "Demitido"** (`Situação = 'D'`).
-- Não são **transferências sem ônus** (`Tipo de Demissão ≠ '5'`).
-- Não são de **cargos especiais** (`Tipo Funcionário ≠ 'C'`, `'S'`, `'T'`, `'U'`, `'Z'`).
-  - `C`: Conselheiro.
-  - `S`: Pensionista.
-  - `T`: Estagiário.
-  - `U`: Outros.
-  - `Z`: Aprendiz.
-- Não são por **motivos excluídos** (`Tipo de Demissão ≠ 'A'`, `'D'`, `'E'`, `'F'`, `'I'`, `'J'`, `'P'`, `'R'`, `'S'`, `'U'`).
-  - Exemplo: Aposentadoria, falecimento, rescisão por idade.
+- Funcionários com **demissão registrada** (`Situação = 'D'`).
+- Demissões **não relacionadas a transferências** (`Tipo de Demissão ≠ 5`).
+- Funcionários **não estagiários/aprendizes** (`Tipo Funcionário ≠ 'T', 'Z'`).
+- Demissões **classificadas como turnover** (exclui aposentadorias, falecimentos, transferências).
 
 #### **Critérios de Exclusão**
-Não são contadas como *Turnover*:
-- **Transferências internas** (`Tipo de Demissão = '5'`).
+- **Transferências internas** (`Tipo de Demissão = 5`).
+- **Aposentadorias** (`Tipo de Demissão = 'A', 'D', 'E', 'F', 'I', 'J', 'P', 'R', 'S', 'U'`).
 - **Falecimentos** (`Tipo de Demissão = '8'`).
-- **Aposentadorias** (`Tipo de Demissão = 'A'`, `'D'`, `'E'`, etc.).
-- **Demissões de estagiários/aprendizes**.
-- **Funcionários offshore** (a menos que especificado).
+- **Estagiários e aprendizes** (`Tipo Funcionário = 'T', 'Z'`).
 
 #### **Casos Especiais**
 - **Demissões voluntárias vs. involuntárias**:
-  - **Voluntárias**: `Tipo de Demissão = '4'`, `'V'`.
-  - **Involuntárias**: `Tipo de Demissão = '1'`, `'2'`, `'3'`, `'8'`, `'N'`, `'T'`.
+  - **Voluntárias**: `Tipo de Demissão = '4', 'V'`.
+  - **Involuntárias**: `Tipo de Demissão = '2', '8', 'N', 'T'`.
 - **Funcionários readmitidos**:
-  - São marcados com `readimitido = 'Sim'` e contabilizados separadamente.
+  - Marcados com `readimitido = 'Sim'` se tiverem mais de uma admissão.
 
 ---
 
-### **2.3 New Hire (Novas Contratações)**
+### **2.3. Vagas Abertas (Posições em Aberto)**
+#### **Definição**
+Quantidade de **vagas em processo de recrutamento**, incluindo substituições e novas posições.
+
+#### **Critérios de Inclusão**
+- Vagas com **status "Em Andamento"** ou **"Em Admissão"**.
+- Vagas com **data de abertura válida** (`DTAABERTURA` preenchida).
+- Vagas **não relacionadas a estagiários/aprendizes** (`POSICAO` não contém "APRENDIZ" ou "ESTAG").
+
+#### **Critérios de Exclusão**
+- Vagas **sem responsável definido** (`RESPONSAVELVAGA = 'NÃO DEFINIDO'`).
+- Vagas **para aprendizes/estagiários** (`POSICAO` contém "APRENDIZ" ou "ESTAG").
+- Vagas **sem centro de custo válido** (`CCUSTO` vazio).
+
+#### **Casos Especiais**
+- **Tempo de recrutamento**:
+  - Calculado como a diferença entre `DTAABERTURA` e `DTACOMITE` (data de comitê).
+  - Se a vaga estiver **em andamento**, usa a data atual (`TODAY()`).
+- **Classificação da vaga**:
+  - **Substituição**: `CLASSIFICACAO = 'Substituição'`.
+  - **Nova posição**: Outros casos.
+
+---
+
+### **2.4. New Hires (Novas Contratações)**
 #### **Definição**
 Funcionários **contratados recentemente** (até 1 ano de empresa).
 
 #### **Critérios de Inclusão**
-São classificados como *New Hire* os funcionários que:
-- Têm **menos de 1 ano de empresa** (`tempo_empresa_dias < 365`).
-- Estão **ativos** (`headcount_flag_new = 'TRUE'`).
-- Não são **estagiários/aprendizes**.
+- Funcionários com **menos de 1 ano de admissão** (`tempo_empresa_dias < 365`).
+- Funcionários **ativos** (`headcount_flag_new = 'TRUE'`).
+- Funcionários **não estagiários/aprendizes**.
 
 #### **Critérios de Exclusão**
-Não são contados como *New Hire*:
-- Funcionários com **mais de 1 ano de empresa**.
-- **Estagiários/aprendizes**.
-- **Funcionários inativos**.
+- Funcionários **demitidos** (`Situação ≠ 'A'`).
+- **Estagiários e aprendizes** (`Funções TEXT` contém "Estagiário" ou `Tipo Funcionário = 'T'`).
 
 #### **Casos Especiais**
-- **Admitidos no mês**:
-  - Marcados com `admitido_flag = 'TRUE'`.
-- **Admitidos nos últimos 3 meses**:
-  - Marcados com `admitido_flag_3meses = 'TRUE'`.
+- **Contratações no mês**:
+  - Marcadas com `admitido_flag = 'TRUE'` se admitidos no mesmo mês da referência.
+- **Contratações nos últimos 3 meses**:
+  - Marcadas com `admitido_flag_3meses = 'TRUE'`.
 
 ---
 
-### **2.4 Vagas Abertas (Posições em Aberto)**
+### **2.5. Salário e Faixas Salariais**
 #### **Definição**
-Vagas **em processo de recrutamento**, desde a abertura até o fechamento.
+Análise da **posição salarial** dos funcionários em relação à faixa de referência.
 
 #### **Critérios de Inclusão**
-São contadas como **vagas abertas** as posições que:
-- Estão com **status "Em Andamento"** ou **"Em Admissão"**.
-- Não são para **aprendizes/estagiários** (`POSICAO ≠ '*APRENDIZ*'`, `'*ESTAG*'`).
-- Têm **responsável pela vaga definido** (`RESPONSAVELVAGA ≠ '*NAO DEFINIDO*'`).
+- Funcionários com **salário registrado** (`salario` preenchido).
+- Funcionários **ativos ou em afastamentos remunerados**.
 
 #### **Critérios de Exclusão**
-Não são contadas:
-- Vagas **fechadas** ou **canceladas**.
-- Vagas para **aprendizes/estagiários**.
-- Vagas sem **responsável definido**.
-
-#### **Casos Especiais**
-- **Tempo de recrutamento**:
-  - Calculado como a diferença entre `DTAABERTURA` (data de abertura) e `DTACOMITE` (data de comitê).
-- **Tempo de admissão**:
-  - Diferença entre `DTAINICIO` (data de início) e `DTACOMITE`.
-
----
-
-### **2.5 Salário Posicionado (Faixas Salariais)**
-#### **Definição**
-Posicionamento do **salário do funcionário** em relação à faixa salarial de referência para seu cargo.
-
-#### **Critérios de Inclusão**
-São classificados em faixas salariais os funcionários que:
-- Possuem **salário registrado** (`salario ≠ '#'`).
-- Têm **cargo com faixa salarial definida** (`range_salario_key` válido).
-
-#### **Critérios de Exclusão**
-Não são classificados:
-- Funcionários sem **salário registrado**.
-- Cargos sem **faixa salarial cadastrada**.
+- Funcionários **sem salário cadastrado**.
+- **Estagiários e aprendizes**.
 
 #### **Casos Especiais**
 - **Faixas salariais**:
-  | Faixa               | Critério                     |
-  |---------------------|------------------------------|
-  | Menor que 80%       | `salario/100 < 0.8`          |
-  | Entre 80% e 90%     | `0.8 ≤ salario/100 < 0.9`    |
-  | Entre 90% e 100%    | `0.9 ≤ salario/100 < 1`     |
-  | Entre 100% e 110%   | `1 ≤ salario/100 < 1.1`     |
-  | Acima de 120%        | `salario/100 > 1.2`         |
+  - `Menor 80%`: Salário < 80% da referência.
+  - `Entre 100% e 110%`: Salário entre 100% e 110%.
+  - `Acima 120%`: Salário > 120%.
+- **Funcionários offshore**:
+  - Salários podem seguir faixas diferentes (`offshore = 1`).
 
 ---
 
 ## **3. Condicionais e Classificações**
-Os dados são segmentados conforme as seguintes regras:
-
-| **Segmentação**          | **Critérios**                                                                 |
-|--------------------------|------------------------------------------------------------------------------|
-| **Faixa Etária**         | - Até 30 anos: `idade ≤ 30`.<br>- 31 a 50 anos: `30 < idade ≤ 50`.<br>- Acima de 50: `idade > 50`. |
-| **Tipo de Contratação**  | - **Líder**: `Carreira = '1-Gestão'` ou `Grupo Relatório = '5 - Especialista'`.<br>- **Operacional**: `Grupo de Cargo 2 = 'Operacional'`. |
-| **Gênero**               | - Masculino: `Sexo = 'M'`.<br>- Feminino: `Sexo = 'F'`.<br>- Não informado: `Sexo ≠ 'M' ou 'F'`. |
-| **Tipo de Demissão**    | - **Voluntária**: `Tipo de Demissão = '4' ou 'V'`.<br>- **Involuntária**: `Tipo de Demissão = '1', '2', 'N', 'T'`. |
-| **Status da Vaga**      | - **Em Andamento**: `STATUS = 'EM ANDAMENTO'`.<br>- **Fechada**: `STATUS ≠ 'EM ANDAMENTO'`. |
+### **Segmentação dos Dados**
+Os dados são classificados por:
+- **Período**: Mês/ano de referência (`load_date`).
+- **Faixa etária**:
+  - `Até 30 anos`.
+  - `De 31 a 50 anos`.
+  - `Acima de 50 anos`.
+- **Gênero**: `Masculino`, `Feminino`, `Não informado`.
+- **Tipo de funcionário**:
+  - `Normal`, `Líder`, `Operacional`, `Técnico`.
+- **Status da vaga**:
+  - `Em Andamento`, `Concluída`, `Cancelada`.
+- **Classificação de demissão**:
+  - `Voluntária`, `Involuntária`.
 
 ---
 
 ## **4. Campos e Flags de Apoio**
-Campos utilizados para aplicar as regras de negócio:
-
-| **Campo**                     | **Significado**                                                                 |
-|-------------------------------|---------------------------------------------------------------------------------|
-| `headcount_flag_new`          | Indica se o funcionário deve ser contado no *Headcount* (`TRUE`/`FALSE`).       |
-| `new_hire_flag`               | Indica se o funcionário é uma nova contratação (`TRUE`/`FALSE`).               |
-| `admitido_flag`               | Indica se o funcionário foi admitido no mês (`TRUE`/`FALSE`).                  |
-| `turnover_flag`               | Indica se a demissão deve ser contada no *Turnover* (`TRUE`/`FALSE`).           |
-| `offshore`                    | Indica se o funcionário é offshore (`1` = Sim, `0` = Não).                     |
-| `short_tenure`                | Indica se o funcionário foi demitido antes do fim do mês de admissão (`1` = Sim).|
-| `readimitido`                 | Indica se o funcionário foi readmitido (`Sim`/`Não`).                           |
-| `demissao_classificacao`     | Classifica a demissão como `Voluntária` ou `Involuntária`.                     |
-| `posic_fs`                    | Posicionamento do salário em relação à faixa salarial (ex.: `85%`).              |
-| `agrup_fs`                    | Faixa salarial agrupada (ex.: `Entre 90% e 100%`).                              |
+| **Campo/Flag**               | **Significado**                                                                 |
+|------------------------------|-------------------------------------------------------------------------------|
+| `headcount_flag_new`          | Indica se o funcionário deve ser contado no headcount (`TRUE`/`FALSE`).       |
+| `new_hire_flag`              | Funcionário com menos de 1 ano de empresa (`TRUE`/`FALSE`).                   |
+| `admitido_flag`              | Funcionário admitido no mês de referência (`TRUE`/`FALSE`).                  |
+| `turnover_flag`               | Demissão considerada no cálculo de turnover (`TRUE`/`FALSE`).                 |
+| `offshore`                   | Funcionário offshore (`1` = Sim, `0` = Não).                                  |
+| `short_tenure`               | Funcionário admitido e demitido no mesmo mês (`1` = Sim).                     |
+| `readimitido`                | Funcionário readmitido (`Sim`/`Não`).                                         |
+| `gestor_direto_nome`         | Nome do gestor direto (primeiro nível válido na hierarquia).                  |
+| `posic_fs`                   | Posição do salário em relação à faixa de referência (ex.: `95%`).             |
+| `agrup_fs`                   | Grupo de faixa salarial (ex.: `Entre 90% e 100%`).                            |
 
 ---
 
-## **5. O Que é Incluído e o Que é Excluído no Dashboard**
+## **5. O que é Incluído e o que é Excluído no Dashboard**
 
-### **5.1 Headcount**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Funcionários ativos (`Situação = 'A'`). | Estagiários (`Tipo Funcionário = 'T'`). |
-| Funcionários em férias/licença.       | Aprendizes (`Tipo Funcionário = 'Z'`). |
-| Funcionários com centro de custo válido. | Conselheiros/cargos especiais.       |
-|                                       | Funcionários offshore (`offshore = 1`). |
-|                                       | Admitidos e demitidos no mesmo mês. |
-
-### **5.2 Turnover**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Demissões voluntárias/involuntárias.  | Transferências internas (`Tipo Demissão = '5'`). |
-| Funcionários com mais de 3 meses.     | Falecimentos (`Tipo Demissão = '8'`). |
-|                                       | Aposentadorias.                      |
-|                                       | Estagiários/aprendizes.              |
-
-### **5.3 New Hire**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Funcionários com menos de 1 ano.      | Estagiários/aprendizes.              |
-| Ativos no mês.                        | Funcionários inativos.               |
-
-### **5.4 Vagas Abertas**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Vagas em andamento.                   | Vagas para aprendizes/estagiários.   |
-| Vagas com responsável definido.       | Vagas fechadas/canceladas.            |
+| **Métrica**          | **Inclusão**                                                                 | **Exclusão**                                                                 |
+|----------------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| **Headcount**        | Funcionários ativos, em licença, offshore, recontratados.                  | Demitidos, estagiários, aprendizes, matrículas apagadas, conselheiros.      |
+| **Turnover**         | Demissões voluntárias/involuntárias (exceto transferências).               | Aposentadorias, falecimentos, transferências, estagiários.                   |
+| **Vagas Abertas**    | Vagas em andamento com responsável definido.                              | Vagas para estagiários, sem centro de custo, sem responsável.                |
+| **New Hires**        | Funcionários com <1 ano de empresa, ativos.                                | Demitidos, estagiários, aprendizes.                                         |
+| **Salário**          | Funcionários ativos com salário cadastrado.                                | Sem salário, estagiários, aprendizes.                                       |
 
 ---
 
 ## **6. Glossário**
 | **Termo**               | **Definição**                                                                 |
-|-------------------------|------------------------------------------------------------------------------|
-| **Headcount**           | Número total de funcionários ativos em um período.                         |
+|-------------------------|-----------------------------------------------------------------------------|
+| **Headcount**           | Contagem total de funcionários ativos em um período.                       |
 | **Turnover**            | Taxa de rotatividade (saída de funcionários).                              |
-| **New Hire**            | Funcionário contratado há menos de 1 ano.                                   |
-| **Short Tenure**        | Funcionário demitido antes do fim do mês de admissão.                      |
-| **Offshore**            | Funcionário alocado em outra país/sede.                                     |
-| **Readmitido**          | Funcionário que foi demitido e recontratado.                                |
-| **Faixa Salarial**      | Intervalos de salário referência para cada cargo (ex.: 80%-90% do mercado). |
-| **Centro de Custo**     | Unidade organizacional que acumula custos (ex.: departamento, filial).      |
-| **Coligada**            | Empresa do mesmo grupo (ex.: Eldorado, Florestal, Offshore).                 |
+| **New Hire**            | Funcionário contratado recentemente (até 1 ano).                           |
+| **Offshore**            | Funcionários alocados em unidades no exterior.                              |
+| **Short Tenure**        | Funcionário admitido e demitido no mesmo mês.                              |
+| **Faixa Salarial**      | Intervalos de salário em relação a uma referência (ex.: 80%-90%).          |
+| **Gestor Direto**       | Primeiro nível de hierarquia acima do funcionário.                          |
 | **RP (Requisição de Pessoal)** | Processo de abertura de vaga.                                          |
+| **Coligada**            | Empresa do grupo (ex.: Eldorado, Florestal).                                |
+| **Centro de Custo**     | Unidade organizacional responsável por custos (ex.: RH, Produção).         |
+| **PCD**                 | Pessoa com Deficiência.                                                    |

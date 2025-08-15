@@ -1,182 +1,256 @@
 # Documentação Técnica
 
 **Arquivo:** `bz_headcount.qvs`  
-**Última atualização:** 15/08/2025 13:28:20
+**Última atualização:** 15/08/2025 13:48:41
 
 # **Documentação de Regras de Negócio – Dashboard de Recursos Humanos (Headcount e Métricas Relacionadas)**
-*Objetivo:* Explicar de forma clara e acessível as regras de inclusão, exclusão e condicionais aplicadas às métricas de **Headcount** e indicadores relacionados no dashboard de RH.
 
 ---
 
 ## **1. Visão Geral**
 ### **Objetivo do Documento**
-- Detalhar **o que é contado** e **o que não é contado** em cada métrica do dashboard.
-- Explicar **critérios de inclusão/exclusão** para evitar dúvidas na interpretação dos dados.
-- Orientar como identificar **casos especiais** (exceções ou tratamentos atípicos).
+Este documento explica as **regras de negócio** aplicadas aos indicadores do dashboard de **Recursos Humanos**, com foco em **Headcount** (número de funcionários) e métricas relacionadas.
 
-### **Princípios Gerais**
-- Todas as métricas seguem **regras de negócio específicas** para garantir consistência.
-- Dados são **segmentados** por:
-  - Período (data de referência, mês, ano).
-  - Status do funcionário (ativo, inativo, afastado, etc.).
-  - Tipo de contrato (CLT, temporário, offshore, etc.).
-  - Localização (filial, centro de custo, região).
-  - Classificações funcionais (cargo, carreira, grupo salarial).
+Cada métrica segue **critérios específicos de inclusão e exclusão**, que determinam:
+- **O que é contado** (dados válidos para análise).
+- **O que não é contado** (dados excluídos por não atenderem às regras).
+- **Casos especiais** (exceções ou tratamentos diferenciados).
+
+### **Como Identificar o Que Deve Ser Contado?**
+Para verificar se um registro deve ser incluído ou excluído, siga estas perguntas:
+1. **O funcionário está ativo no período analisado?**
+   - Sim → Incluído.
+   - Não → Excluído (exceto em métricas históricas).
+2. **O tipo de contrato é elegível?**
+   - CLT, temporários (em alguns casos), offshore (quando aplicável) → Incluídos.
+   - Estagiários, terceirizados (sem vínculo direto) → Excluídos.
+3. **O centro de custo ou filial está dentro do escopo?**
+   - Somente filiais e centros de custo **ativos e mapeados** são considerados.
+4. **Há flags ou status específicos?**
+   - Exemplo: Funcionários em licença médica **podem ser contados** em algumas métricas, mas não em outras.
 
 ---
+
 ## **2. Regras de Negócio por Indicador/Métrica**
 
----
-
-### **2.1 Headcount (Total de Funcionários)**
-**Definição:**
-Número total de **funcionários ativos** na empresa em um determinado período, considerando critérios de vínculo empregatício e status.
-
-#### **Critérios de Inclusão (o que é contado)**
-✅ **Funcionários ativos** com contrato **CLT** (Consolidação das Leis do Trabalho) ou **equivalente** (ex.: offshore com vínculo direto).
-✅ **Funcionários em período de experiência** (mesmo que ainda não efetivados).
-✅ **Funcionários afastados por licença médica ou férias** (mantêm vínculo ativo).
-✅ **Funcionários em home office ou regime híbrido** (independentemente da localização física).
-✅ **Funcionários de filiais nacionais e internacionais** (desde que vinculados à empresa matriz).
-✅ **Trainees e estagiários** (se registrados no sistema com matrícula ativa).
-
-#### **Critérios de Exclusão (o que não é contado)**
-❌ **Funcionários demitidos ou com contrato encerrado** (mesmo que ainda constem em sistemas legados).
-❌ **Terceirizados ou prestadores de serviço** (sem vínculo direto com a empresa).
-❌ **Funcionários em processo de desligamento** (após comunicação formal da demissão).
-❌ **Aposentados** (mesmo que recebam benefícios da empresa).
-❌ **Funcionários de empresas coligadas ou parceiras** (exceto se houver integração contratual específica).
-❌ **Candidatos em processo seletivo** (não contratados).
-
-#### **Casos Especiais (exceções)**
-🔹 **Funcionários offshore:**
-   - Incluídos **somente se** o contrato for gerenciado diretamente pela empresa (não por intermediárias).
-   - Excluídos se forem **terceirizados** via empresa local no exterior.
-
-🔹 **Afastamentos longos (acima de 12 meses):**
-   - **Incluídos** se o afastamento for por **licença médica ou maternidade**.
-   - **Excluídos** se for por **licença não remunerada** ou acordo de suspensão contratual.
-
-🔹 **Funcionários em transição entre cargos:**
-   - Contados **apenas uma vez**, no cargo de destino (evita duplicidade).
-
----
-### **2.2 Headcount Histórico (2014–2018)**
-**Definição:**
-Total de funcionários em anos anteriores, usado para **análise de tendências e crescimento**.
+### **2.1. Headcount (Número de Funcionários)**
+#### **Definição**
+Quantidade total de **funcionários ativos** em um determinado período, considerando vínculo empregatício direto com a empresa.
 
 #### **Critérios de Inclusão**
-✅ Mesmos critérios do **Headcount atual**, mas aplicados a dados históricos.
-✅ **Ajustes retroativos** (ex.: correção de registros errados em anos passados).
+São contados como **Headcount** os funcionários que atendem **todos** os seguintes requisitos:
+- **Status ativo** no sistema de folha de pagamento.
+- **Vínculo empregatício direto** (CLT, contratos temporários com registro, offshore quando aplicável).
+- **Centro de custo ou filial válidos** (mapeados na base de dados).
+- **Data de admissão anterior ou igual ao período de análise**.
+- **Data de desligamento posterior ou igual ao período de análise** (ou sem data de desligamento).
 
 #### **Critérios de Exclusão**
-❌ Dados **não consolidados** ou com inconsistências graves (ex.: falta de matrícula).
-❌ Funcionários de **empresas adquiridas** que não foram integradas ao sistema.
+Não são contados no **Headcount**:
+- Funcionários **desligados** antes do período analisado.
+- **Estagiários** (sem vínculo CLT).
+- **Terceirizados** (sem contrato direto com a empresa).
+- Funcionários com **centro de custo inativo ou não mapeado**.
+- Registros com **dados incompletos** (ex.: matrícula inválida, cargo não cadastrado).
+- **Funcionários em licença não remunerada** (exceto se houver regra específica para inclusão).
 
 #### **Casos Especiais**
-🔹 **Fusões/aquisições:**
-   - Funcionários de empresas adquiridas são incluídos **a partir da data de integração oficial**.
+| Situação | Tratamento |
+|----------|------------|
+| **Funcionários em licença médica remunerada** | Contados no Headcount. |
+| **Funcionários em férias** | Contados no Headcount. |
+| **Contratos temporários** | Incluídos apenas se tiverem **registro formal** e centro de custo válido. |
+| **Funcionários offshore** | Incluídos somente se a fonte de dados (`bz_headcount_offshore_f`) estiver integrada ao dashboard. |
+| **Funcionários com dupla matrícula** | Contados uma única vez (evita duplicidade). |
+| **Headcount histórico (2014–2018)** | Usa base manual (`hc_historica_f.xlsx`), com validação de consistência dos dados. |
 
 ---
-### **2.3 Movimentações de Pessoal (Admissões, Demissões, Transferências)**
-**Definição:**
-Registro de **entrada, saída ou realocação** de funcionários no período.
+
+### **2.2. Headcount por Cargo/Área**
+#### **Definição**
+Distribuição dos funcionários por **cargo, carreira, grupo de cargo ou área organizacional**.
 
 #### **Critérios de Inclusão**
-✅ **Admissões:** Contratações com registro em folha de pagamento.
-✅ **Demissões:** Desligamentos com data de saída formalizada.
-✅ **Transferências:** Mudanças de cargo, filial ou centro de custo **com registro no sistema**.
+- Mesmas regras do **Headcount geral** (status ativo, vínculo direto, etc.).
+- **Cargo cadastrado** na tabela de funções (`bz_excel_funcao_d`).
+- **Centro de custo associado a uma área válida** (mapeado em `bz_excel_estrutura_cc_d`).
 
 #### **Critérios de Exclusão**
-❌ **Movimentações canceladas** (ex.: admissão desfeita antes da data de início).
-❌ **Transferências internas sem alteração contratual** (ex.: mudança de mesa sem mudança de cargo).
+- Funcionários sem **cargo definido** ou com cargo não mapeado.
+- Áreas ou centros de custo **desativados**.
 
 #### **Casos Especiais**
-🔹 **Recontratações:**
-   - Contadas como **nova admissão** se houver intervalo de mais de 6 meses desde a demissão.
+| Situação | Tratamento |
+|----------|------------|
+| **Cargos com múltiplas descrições** | Usa a descrição **oficial** do CBO (Classificação Brasileira de Ocupações). |
+| **Grupos de cargo não definidos** | Classificados como **"Outros"** no dashboard. |
+| **Funcionários em transição de cargo** | Contados no **cargo atual** (data de referência do dashboard). |
 
 ---
-### **2.4 Posições Abertas (Vagas em Aberto)**
-**Definição:**
-Vagas **autorizadas para contratação** mas ainda não preenchidas.
+
+### **2.3. Movimentações de Pessoal (Admissões, Desligamentos, Transferências)**
+#### **Definição**
+Registro de **entrada, saída ou mudança interna** de funcionários em um período.
 
 #### **Critérios de Inclusão**
-✅ Vagas com **budget aprovado** e publicadas internamente/externamente.
-✅ Vagas **em processo seletivo** (mesmo sem candidatos ainda).
+- **Admissões**: Funcionários com data de admissão **dentro do período analisado**.
+- **Desligamentos**: Funcionários com data de desligamento **dentro do período analisado**.
+- **Transferências**: Mudanças de **cargo, centro de custo ou filial** registradas no período.
 
 #### **Critérios de Exclusão**
-❌ Vagas **congeladas** (sem previsão de preenchimento).
-❌ Vagas **canceladas** (budget revogado).
+- Movimentações **canceladas ou retroativas** (ex.: admissão registrada erradamente).
+- Transferências **entre centros de custo do mesmo grupo** (não contam como movimentação relevante).
+- Desligamentos por **falecimento** (tratados separadamente em alguns dashboards).
+
+#### **Casos Especiais**
+| Situação | Tratamento |
+|----------|------------|
+| **Readmissão no mesmo período** | Contada como **uma admissão e um desligamento**. |
+| **Transferência para offshore** | Registrada como **desligamento no Brasil** e **admissão no offshore**. |
+| **Licenças prolongadas** | Não contam como desligamento, mas podem ser marcadas como **"Inativo Temporário"**. |
 
 ---
-### **2.5 Turnover (Rotatividade)**
-**Definição:**
-Percentual de **funcionários que saíram da empresa** em relação ao total no período.
+
+### **2.4. Headcount Orçado vs. Realizado**
+#### **Definição**
+Comparação entre o **número planejado de funcionários** (orçamento) e o **número real** em um período.
 
 #### **Critérios de Inclusão**
-✅ **Demissões voluntárias e involuntárias** (exceto aposentadorias).
-✅ **Término de contrato temporário** (se não houver renovação).
+- **Headcount realizado**: Mesmas regras do **Headcount geral**.
+- **Headcount orçado**: Dados extraídos de `hc_orcamento_historico.xlsx`, com validação de:
+  - **Centro de custo** compatível com a estrutura atual.
+  - **Período orçado** alinhado ao período analisado.
 
 #### **Critérios de Exclusão**
-❌ **Transferências internas** (não são consideradas saída).
-❌ **Falecimentos** (não impactam a métrica de rotatividade).
+- Orçamentos de **centros de custo desativados**.
+- Dados orçamentários **sem data de referência clara**.
+- Orçamentos **duplicados** (usado o registro mais recente).
 
-#### **Cálculo**
-```
-Turnover (%) = (Nº de saídas no período / Headcount médio no período) × 100
-```
+#### **Casos Especiais**
+| Situação | Tratamento |
+|----------|------------|
+| **Diferença > 10% entre orçado e realizado** | Gera alerta no dashboard para revisão. |
+| **Orçamento não cadastrado para um centro de custo** | Assume **headcount zero** para comparação. |
+
 ---
+
+### **2.5. Posições Abertas (Vagas)**
+#### **Definição**
+Vagas **autorizadas, mas não preenchidas** em um determinado período.
+
+#### **Critérios de Inclusão**
+- Vagas com **status "Aberta"** em `bz_excel_posicoes_f`.
+- **Centro de custo ativo** e mapeado.
+- **Data de abertura dentro do período analisado** (ou ainda não preenchida).
+
+#### **Critérios de Exclusão**
+- Vagas **canceladas ou preenchidas** antes do período.
+- Vagas sem **centro de custo válido**.
+- Vagas **duplicadas** (mesma posição em mais de um registro).
+
+#### **Casos Especiais**
+| Situação | Tratamento |
+|----------|------------|
+| **Vaga aberta há mais de 90 dias** | Classificada como **"Crítica"** no dashboard. |
+| **Vaga com múltiplos candidatos** | Contada uma única vez, independentemente do número de candidatos. |
+
+---
+
 ## **3. Condicionais e Classificações**
-Como os dados são **agrupados e filtrados** no dashboard:
+Os dados são segmentados conforme as seguintes regras:
 
-| **Classificação**       | **Descrição**                                                                 |
-|--------------------------|-------------------------------------------------------------------------------|
-| **Por Período**          | Mês/ano de referência (ex.: "Headcount em dezembro/2023").                  |
-| **Por Status**           | Ativo, inativo, afastado, em experiência.                                   |
-| **Por Tipo de Contrato** | CLT, temporário, offshore, trainee.                                         |
-| **Por Localização**      | Filial, centro de custo, região (Sudeste, Nordeste, etc.).                   |
-| **Por Faixa Salarial**   | Ex.: "Até R$ 3.000", "R$ 3.001 a R$ 8.000", "Acima de R$ 15.000".           |
-| **Por Cargo/Carreira**  | Gerente, analista, operacional; carreira técnica ou administrativa.          |
-| **Por Idade**            | "Até 30 anos", "31 a 50 anos", "Acima de 50 anos".                          |
+### **3.1. Por Período**
+- **Mês/ano**: Usa a **data de referência** do dashboard (ex.: "Headcount em 31/12/2023").
+- **Histórico**: Dados de 2014 a 2018 usam a base manual (`hc_historica_f.xlsx`).
+- **Comparativos**: Sempre usa **mesmo dia do mês** para evitar distorções (ex.: 31/01 vs. 28/02).
+
+### **3.2. Por Faixa Etária**
+| Classificação | Critério |
+|---------------|----------|
+| **Jovem** | Até 29 anos. |
+| **Adulto** | 30 a 49 anos. |
+| **Sênior** | 50 anos ou mais. |
+
+### **3.3. Por Tempo de Casa**
+| Classificação | Critério |
+|---------------|----------|
+| **Novato** | Até 1 ano. |
+| **Intermediário** | 1 a 5 anos. |
+| **Veterano** | Mais de 5 anos. |
+
+### **3.4. Por Tipo de Contrato**
+| Classificação | Critério |
+|---------------|----------|
+| **CLT** | Contrato padrão. |
+| **Temporário** | Contrato por prazo determinado. |
+| **Offshore** | Funcionários alocados no exterior. |
+
+### **3.5. Por Status**
+| Classificação | Critério |
+|---------------|----------|
+| **Ativo** | Funcionário em atividade. |
+| **Licença** | Afastado por motivo médico, maternidade, etc. |
+| **Inativo Temporário** | Licença não remunerada. |
+| **Desligado** | Saída registrada. |
 
 ---
+
 ## **4. Campos e Flags de Apoio**
-Campos usados para aplicar as regras (sem detalhes técnicos):
+Campos usados para aplicar as regras de negócio:
 
-| **Campo/Flag**               | **Significado**                                                                 |
-|------------------------------|---------------------------------------------------------------------------------|
-| **Status do Funcionário**    | "Ativo", "Inativo", "Afastado", "Em Experiência".                             |
-| **Tipo de Contrato**         | "CLT", "Temporário", "Offshore", "Trainee".                                   |
-| **Flag de Movimentação**     | "Admissão", "Demissão", "Transferência", "Promoção".                          |
-| **Centro de Custo**          | Unidade organizacional responsável pelo custo do funcionário.                |
-| **Grupo de Cargo**           | Classificação por nível hierárquico (ex.: "Operacional", "Gerencial").        |
-| **Flag Offshore**            | "Sim" (contrato direto), "Não" (terceirizado).                                 |
+| Campo | Origem | Descrição |
+|-------|--------|-----------|
+| **Status** | `bz_headcount_f` | Indica se o funcionário está ativo, licenciado ou desligado. |
+| **Data de Admissão** | `bz_headcount_f` | Data de entrada na empresa. |
+| **Data de Desligamento** | `bz_headcount_f` | Data de saída (nulo = ainda ativo). |
+| **Centro de Custo** | `bz_externo_centro_custo_d` | Unidade organizacional do funcionário. |
+| **Cargo** | `bz_excel_funcao_d` | Função exercida (vinculada ao CBO). |
+| **Tipo de Contrato** | `bz_pessoa_d` | CLT, temporário, offshore, etc. |
+| **Filial** | `bz_excel_filial_d` | Local de trabalho. |
+| **Flag Offshore** | `bz_headcount_offshore_f` | Indica se o funcionário está alocado no exterior. |
+| **Grupo de Cargo** | `bz_excel_funcao_d` | Classificação por carreira (ex.: Administrativo, Operacional). |
+| **Tabela Salarial** | `bz_excel_salario_d` | Faixa salarial associada ao cargo. |
 
 ---
+
 ## **5. O que é Incluído e o que é Excluído no Dashboard**
-### **Tabela Resumo**
 
-| **Métrica**               | **Inclusão**                                                                 | **Exclusão**                                                                 |
-|----------------------------|------------------------------------------------------------------------------|------------------------------------------------------------------------------|
-| **Headcount**              | Funcionários ativos (CLT, offshore direto, trainees).                       | Terceirizados, demitidos, aposentados.                                      |
-| **Headcount Histórico**    | Dados consolidados de 2014–2018 com ajustes retroativos.                     | Dados não validados ou de empresas não integradas.                          |
-| **Movimentações**          | Admissões, demissões e transferências registradas.                          | Movimentações canceladas ou sem alteração contratual.                       |
-| **Posições Abertas**       | Vagas com budget aprovado e em processo seletivo.                           | Vagas congeladas ou canceladas.                                              |
-| **Turnover**               | Demissões voluntárias/involuntárias e término de temporários.               | Transferências internas, falecimentos, aposentadorias.                      |
+### **5.1. Headcount**
+| **Inclusão** | **Exclusão** |
+|--------------|--------------|
+| Funcionários CLT ativos. | Estagiários. |
+| Contratos temporários com registro. | Terceirizados. |
+| Funcionários em licença remunerada. | Centros de custo inativos. |
+| Funcionários offshore (quando aplicável). | Dados duplicados. |
+| Funcionários em férias. | Funcionários desligados antes do período. |
+
+### **5.2. Movimentações**
+| **Inclusão** | **Exclusão** |
+|--------------|--------------|
+| Admissões no período. | Movimentações canceladas. |
+| Desligamentos no período. | Transferências internas sem mudança de área. |
+| Transferências de cargo/centro de custo. | Desligamentos por falecimento. |
+
+### **5.3. Posições Abertas**
+| **Inclusão** | **Exclusão** |
+|--------------|--------------|
+| Vagas com status "Aberta". | Vagas canceladas. |
+| Vagas com centro de custo ativo. | Vagas sem data de abertura. |
+| Vagas não preenchidas. | Vagas duplicadas. |
 
 ---
+
 ## **6. Glossário**
-| **Termo**               | **Definição**                                                                 |
-|-------------------------|------------------------------------------------------------------------------|
-| **CLT**                 | Contrato regido pela Consolidação das Leis do Trabalho (vínculo empregatício formal). |
-| **Offshore**            | Funcionário contratado para trabalhar no exterior, com vínculo direto ou indireto. |
-| **Centro de Custo**     | Unidade organizacional que acumula os custos de um funcionário ou projeto.  |
-| **Headcount Médio**     | Média do número de funcionários em um período (ex.: (Jan + Dez)/2).         |
-| **Budget**              | Orçamento aprovado para contratações ou despesas.                            |
-| **Trainee**             | Programa de treinamento para novos funcionários (geralmente recém-formados). |
-| **Flag**                | Indicador (sim/não) usado para classificar registros (ex.: "Flag Offshore").  |
-
----
-**Observação Final:**
-- Em caso de dúvidas sobre **casos não cobertos**, consulte a equipe de People Analytics.
-- Regras podem ser ajustadas para **filiais específicas** ou **projetos especiais** (verifique com o gestor de RH).
+| Termo | Definição |
+|-------|-----------|
+| **Headcount** | Contagem total de funcionários ativos em um período. |
+| **CBO (Classificação Brasileira de Ocupações)** | Código oficial que classifica cargos no Brasil. |
+| **Centro de Custo** | Unidade organizacional que agrega despesas e funcionários. |
+| **Offshore** | Funcionários alocados em operações no exterior. |
+| **Flag** | Indicador (sim/não) usado para classificar registros. |
+| **CLT** | Contrato de trabalho regido pela Consolidação das Leis do Trabalho. |
+| **Temporário** | Contrato por prazo determinado. |
+| **Estagiário** | Vínculo não-CLT, regido por lei de estágio. |
+| **Terceirizado** | Funcionário de empresa prestadora de serviços. |
+| **Licença Remunerada** | Afastamento com pagamento (ex.: médica, maternidade). |
+| **Licença Não Remunerada** | Afastamento sem pagamento. |

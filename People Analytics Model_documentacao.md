@@ -1,291 +1,227 @@
 # Documentação Técnica
 
 **Arquivo:** `People Analytics Model.qvs`  
-**Última atualização:** 15/08/2025 13:34:32
+**Última atualização:** 15/08/2025 13:54:10
 
 # **Documentação de Regras de Negócio – Dashboard de Recursos Humanos**
-*(Aplicável a métricas de Headcount, Turnover, Vagas, Custos e Eventos)*
+*Objetivo:* Explicar as regras de inclusão, exclusão e condicionais aplicadas às métricas do dashboard de **Recursos Humanos**, garantindo clareza para usuários finais não técnicos.
 
 ---
 
 ## **1. Visão Geral**
 ### **Objetivo do Documento**
-Este guia explica **o que é contado** e **o que não é contado** em cada métrica do dashboard, além de regras para segmentação e casos especiais.
-**Todas as métricas seguem critérios específicos** para garantir consistência nos dados.
+- Detalhar **o que é contado** e **o que não é contado** em cada métrica do dashboard.
+- Explicar **critérios de segmentação** (ex.: por período, tipo de funcionário, situação).
+- Orientar como identificar **casos especiais** ou exceções nas regras.
 
-### **Como Identificar o que Deve ser Contado?**
-- Cada métrica tem **critérios de inclusão** (o que entra no cálculo) e **critérios de exclusão** (o que não entra).
-- **Casos especiais** são exceções às regras gerais (ex.: funcionários em licença, contratos temporários).
-- **Segmentações** (por período, região, tipo de funcionário etc.) ajudam a filtrar os dados.
+### **Como os Dados São Estruturados**
+Cada métrica segue **regras específicas** para:
+- **Inclusão:** Quais registros são considerados válidos.
+- **Exclusão:** Quais registros são ignorados (ex.: dados incompletos, situações temporárias).
+- **Classificação:** Como os dados são agrupados (ex.: por faixa etária, tipo de contratação).
 
 ---
-
 ## **2. Regras de Negócio por Indicador/Métrica**
 
----
-
-### **2.1. Headcount (Número de Funcionários Ativos)**
-#### **Definição**
-Quantidade de **pessoas ativas na empresa** em um determinado período, considerando sua situação contratual.
+### **2.1 Headcount (Número de Funcionários Ativos)**
+**Definição:**
+Total de funcionários **ativos** na empresa em um determinado período.
 
 #### **Critérios de Inclusão**
-✅ **São contados como Headcount:**
-- Funcionários com **situação ativa** (ex.: trabalhando normalmente, em home office, em treinamento).
-- Funcionários **em licença médica ou férias** (mesmo afastados temporariamente).
-- **Contratos temporários ou terceirizados** que estejam **vinculados à folha de pagamento** da empresa.
-- Funcionários **em período de experiência** (ainda não efetivados).
-- Pessoas **em jornada reduzida** (ex.: part-time).
+- Funcionários com **situação ativa** (ex.: em exercício, afastados por licença médica ou férias).
+- Funcionários com **vínculo empregatício formal** (CLT, temporários, terceirizados *quando aplicável*).
+- Funcionários **alocados em qualquer unidade ou centro de custo** da empresa.
 
 #### **Critérios de Exclusão**
-❌ **Não são contados como Headcount:**
-- Funcionários **demitidos ou com contrato encerrado** (mesmo que a demissão tenha ocorrido no mês atual).
-- **Aposentados** ou em **licença não remunerada** (ex.: licença sem vencimento).
-- **Estagiários** (a menos que estejam registrados como funcionários).
-- Pessoas **em processo de admissão** (ainda não contratadas oficialmente).
-- **Funcionários de empresas parceiras** (terceirizados não vinculados à folha da empresa).
+- Funcionários **desligados** (demitidos, aposentados, falecidos).
+- Candidatos em **processo seletivo** (ainda não contratados).
+- Estagiários ou aprendizes **sem registro em folha** (quando não considerados como headcount pela política da empresa).
+- Registros com **dados incompletos** (ex.: falta de matrícula, centro de custo não identificado).
 
 #### **Casos Especiais**
-⚠ **Tratamentos diferenciados:**
-- **Licença maternidade/paternidade**: Contados como ativos.
-- **Afastamento por acidente de trabalho**: Contados como ativos (até o término do benefício).
-- **Funcionários em transferência entre unidades**: Contados na unidade de **destino** a partir da data oficial da mudança.
-- **Contratos suspensos** (ex.: por investigação interna): **Não contados** até a regularização.
+- **Afastamentos longos (ex.: licença maternidade):**
+  - **Incluídos** no headcount se o vínculo empregatício permanecer ativo.
+  - **Excluídos** se o afastamento resultar em rescisão.
+- **Terceirizados:**
+  - Incluídos **somente se** houver acordo contratual para contabilização no headcount.
+- **Funcionários em período de experiência:**
+  - Incluídos **apenas após a assinatura do contrato**.
 
 ---
 
-### **2.2. Turnover (Rotatividade de Funcionários)**
-#### **Definição**
-Porcentagem de **funcionários que saíram da empresa** em um período, em relação ao total de funcionários no início do período.
+### **2.2 Turnover (Rotatividade de Funcionários)**
+**Definição:**
+Porcentagem de funcionários que **saíram da empresa** em um período, em relação ao headcount médio.
 
 #### **Critérios de Inclusão**
-✅ **São contados no Turnover:**
-- **Demissões voluntárias** (pedido do funcionário).
-- **Demissões por justa causa** (iniciativa da empresa).
-- **Término de contrato temporário** (não renovado).
-- **Aposentadorias** (saída definitiva).
-- **Mortes** (falecimento do funcionário).
+- **Desligamentos voluntários** (pedido de demissão).
+- **Desligamentos involuntários** (demissão por justa causa, performance, redução de quadro).
+- **Aposentadorias** (quando não há realocação interna).
+- **Falecimentos**.
+- **Término de contrato temporário** (quando não há renovação).
 
 #### **Critérios de Exclusão**
-❌ **Não são contados no Turnover:**
-- **Transferências internas** (funcionário que muda de área/unidade, mas permanece na empresa).
-- **Licenças temporárias** (ex.: licença médica, férias).
-- **Funcionários em processo de desligamento** (ainda não oficializado).
-- **Terceirizados** (não fazem parte do quadro próprio).
+- **Transferências internas** (funcionário que muda de área, mas permanece na empresa).
+- **Afastamentos temporários** (ex.: licença saúde, férias).
+- **Funcionários em processo de desligamento** mas ainda não efetivado (ex.: aviso prévio em curso).
+- **Terceirizados** (a menos que o contrato preveja contabilização no turnover).
 
 #### **Casos Especiais**
-⚠ **Tratamentos diferenciados:**
-- **Demissões em massa** (ex.: fechamento de uma unidade): Contadas individualmente, mas podem ser analisadas em relatórios separados.
-- **Funcionários que saem e voltam no mesmo período**: Contados **apenas na saída** (não na readmissão).
-- **Saídas por acordo mútuo**: Contadas como demissão voluntária.
+- **Demissões em massa (layoffs):**
+  - Contabilizadas no turnover, mas **podem ser destacadas em relatório separado** para análise de impacto.
+- **Funcionários readmitidos no mesmo período:**
+  - **Excluídos** do cálculo se a readmissão ocorrer em até 30 dias após o desligamento.
+- **Contratos temporários não renovados:**
+  - Incluídos **apenas se** a não renovação for considerada desligamento pela política da empresa.
 
 ---
 
-### **2.3. Vagas Abertas (Posições em Aberto)**
-#### **Definição**
-Número de **posições disponíveis para contratação**, independentemente de estarem em processo seletivo ou não.
+### **2.3 Vagas Abertas (Posições em Aberto)**
+**Definição:**
+Total de **posições disponíveis para contratação**, ainda não preenchidas.
 
 #### **Critérios de Inclusão**
-✅ **São contadas como Vagas Abertas:**
-- Vagas **aprovadas no orçamento** e ainda não preenchidas.
-- Vagas **em processo seletivo** (com candidaturas em andamento).
-- Vagas **temporariamente suspensas** (ex.: congelamento por crise, mas ainda não canceladas).
-- **Reposições** (vagas de funcionários que saíram).
+- Vagas **aprovadas no orçamento** e com processo seletivo em andamento.
+- Vagas **temporárias** (ex.: substituição de licença maternidade).
+- Vagas **para novos projetos** ou expansão de equipe.
 
 #### **Critérios de Exclusão**
-❌ **Não são contadas como Vagas Abertas:**
-- Vagas **já preenchidas**, mas com contratação ainda não oficializada.
-- Vagas **canceladas** (não serão mais ocupadas).
-- **Posições futuras** (previstas no planejamento, mas ainda não aprovadas).
-- Vagas **para estagiários ou terceirizados**.
+- Vagas **canceladas** antes do preenchimento.
+- Vagas **congeladas** por decisão estratégica (ex.: crise financeira).
+- Posições **ocupadas por funcionários em transição** (ex.: realocação interna).
+- Vagas **para terceirizados** (a menos que sejam gerenciadas pelo RH interno).
 
 #### **Casos Especiais**
-⚠ **Tratamentos diferenciados:**
-- **Vagas sazonais** (ex.: contratações para período de safra): Contadas apenas no período ativo.
-- **Vagas compartilhadas** (ex.: função dividida entre duas pessoas): Contada como **uma única vaga**.
-- **Vagas em realocação interna**: Não contadas (já ocupadas por funcionários da empresa).
+- **Vagas reabertas:**
+  - Contabilizadas como **nova vaga** se o processo seletivo anterior foi encerrado sem contratação.
+- **Vagas sazonais:**
+  - Incluídas **apenas no período de necessidade** (ex.: contratações para fim de ano).
 
 ---
 
-### **2.4. Taxa de Ocupação (Fill Rate)**
-#### **Definição**
-Porcentagem de **vagas preenchidas** em relação ao total de vagas **orçamentadas** para um período.
+### **2.4 Taxa de Ocupação (Fill Rate)**
+**Definição:**
+Porcentagem de **vagas preenchidas** em relação ao total de posições previstas no orçamento.
 
 #### **Critérios de Inclusão**
-✅ **São contados no cálculo:**
-- Vagas **orçamentadas** (previstas no planejamento anual).
-- Vagas **efetivamente ocupadas** (com funcionário ativo).
-- Vagas **em processo de contratação** (com candidato selecionado, mas ainda não admitido).
+- Posições **efetivamente ocupadas** por funcionários ativos.
+- Vagas **preenchidas por transferência interna**.
+- Contratações **temporárias** que suprem a demanda (quando aplicável).
 
 #### **Critérios de Exclusão**
-❌ **Não são contados no cálculo:**
-- Vagas **não orçamentadas** (ex.: contratações emergenciais).
-- Vagas **canceladas** após aprovação.
-- **Posições temporárias** (ex.: substituições por licença).
-- Vagas **para terceirizados**.
+- Vagas **em processo seletivo** (ainda não preenchidas).
+- Posições **orçamentárias não aprovadas**.
+- Vagas **ocupadas por funcionários em período de experiência** (se a política considerar apenas contratações efetivas).
 
 #### **Casos Especiais**
-⚠ **Tratamentos diferenciados:**
-- **Vagas com contratação atrasada**: Contadas como **não preenchidas** até a admissão oficial.
-- **Vagas em realocação interna**: Contadas como **preenchidas** (mesmo que o funcionário ainda não tenha assumido).
-- **Orçamento revisado**: A taxa é recalculada com base no **número atualizado de vagas**.
+- **Over-hiring (contratação acima do orçamento):**
+  - **Não impacta a taxa de ocupação** (o cálculo usa apenas as posições previstas).
+- **Vagas compartilhadas (job sharing):**
+  - Contabilizadas como **1 posição preenchida**, independentemente do número de funcionários alocados.
 
 ---
 
-### **2.5. Custo com Pessoal (OPEX de RH)**
-#### **Definição**
-Total de **despesas com salários, benefícios e encargos** relacionados à mão de obra em um período.
+### **2.5 Custo por Funcionário (Custo de Pessoal)**
+**Definição:**
+Valor médio gasto por funcionário, incluindo salários, benefícios e encargos.
 
 #### **Critérios de Inclusão**
-✅ **São contados nos custos:**
-- **Salários e encargos** (INSS, FGTS, 13º salário, férias).
-- **Benefícios** (vale-refeição, vale-transporte, plano de saúde, previdência privada).
-- **Bonificações e comissões**.
-- **Encargos trabalhistas** (multas rescisórias, aviso prévio).
-- **Custos com terceirizados** (se pagos pela empresa).
+- **Salário base** (fixo e variável).
+- **Benefícios** (vale-refeição, plano de saúde, transporte).
+- **Encargos trabalhistas** (INSS, FGTS, 13º salário, férias).
+- **Bônus e comissões** (quando pagos no período analisado).
+- **Custos de treinamento** (quando alocados por funcionário).
 
 #### **Critérios de Exclusão**
-❌ **Não são contados nos custos:**
-- **Investimentos em treinamento** (cursos, certificações).
-- **Despesas com recrutamento** (anúncios, headhunters).
-- **Benefícios não monetários** (ex.: ginástica laboral, programas de bem-estar).
-- **Custos com estagiários** (bolsas-auxílio).
+- **Despesas administrativas** do RH (ex.: software, aluguel de escritório).
+- **Custos com terceirizados** (a menos que sejam rateados por headcount).
+- **Multas ou indenizações** por rescisão (contabilizadas separadamente).
+- **Benefícios não utilizados** (ex.: vale-refeição não sacado).
 
 #### **Casos Especiais**
-⚠ **Tratamentos diferenciados:**
-- **Férias provisionadas**: Contabilizadas no mês de **competência** (não no pagamento).
-- **13º salário**: Rateado mensalmente (1/12 por mês).
-- **Multas por demissão sem justa causa**: Contadas no mês do desligamento.
-- **Benefícios flexíveis** (ex.: vale-cultura): Contados apenas se **utilizados pelo funcionário**.
+- **Funcionários em home office:**
+  - Custos com **equipamentos ou internet** podem ser incluídos, dependendo da política da empresa.
+- **Contratos temporários:**
+  - Custos contabilizados **proporcionalmente ao período trabalhado**.
 
 ---
 
-### **2.6. Eventos de RH (Admissões, Promoções, Transferências)**
-#### **Definição**
-Registro de **movimentações de funcionários** (entradas, saídas, mudanças de cargo, etc.) em um período.
+### **2.6 Tempo Médio de Empresa (Tenure)**
+**Definição:**
+Tempo médio que os funcionários permanecem na empresa, calculado em anos.
 
 #### **Critérios de Inclusão**
-✅ **São contados como eventos:**
-- **Admissões** (novas contratações).
-- **Demissões** (saídas voluntárias ou involuntárias).
-- **Promoções** (mudança de cargo com aumento de responsabilidade).
-- **Transferências** (mudança de área/unidade).
-- **Reajustes salariais** (aumentos ou reduções).
-- **Licenças** (médicas, maternidade, férias).
+- Funcionários **ativos** (incluindo afastados temporariamente).
+- Funcionários **desligados no período analisado** (para cálculo histórico).
+- **Tempo parcial** (ex.: 6 meses = 0,5 ano).
 
 #### **Critérios de Exclusão**
-❌ **Não são contados como eventos:**
-- **Atualizações cadastrais** (ex.: mudança de endereço, estado civil).
-- **Treinamentos internos** (sem mudança de cargo ou salário).
-- **Afastamentos não oficiais** (ex.: faltas não justificadas).
-- **Movimentações de terceirizados**.
+- **Estagiários ou aprendizes** (quando não considerados no headcount).
+- **Funcionários com dados de admissão incompletos**.
+- **Terceirizados** (a menos que tenham registro de tempo na empresa).
 
 #### **Casos Especiais**
-⚠ **Tratamentos diferenciados:**
-- **Recontratações**: Contadas como **nova admissão** (não como readmissão).
-- **Transferências temporárias**: Contadas apenas se durarem **mais de 3 meses**.
-- **Promoções com mudança de salário**: Registradas como **promoção + reajuste**.
+- **Readmissões:**
+  - O tempo é **somatizado** (ex.: funcionário que saiu e voltou após 2 anos tem tenure total de 5 anos).
+- **Fusões/aquisições:**
+  - Funcionários de empresas adquiridas **podem ter o tempo recalculado** a partir da data de integração.
 
 ---
-
 ## **3. Condicionais e Classificações**
-Como os dados são segmentados no dashboard:
+Como os dados são segmentados para análise:
 
-| **Segmentação**       | **Exemplos de Filtros**                                                                 |
-|----------------------|----------------------------------------------------------------------------------------|
-| **Período**          | Mês atual, ano fiscal, trimestre, data específica (ex.: "Jan/2024").                  |
-| **Tipo de Funcionário** | Efetivo, temporário, terceirizado, estagiário.                                        |
-| **Situação**         | Ativo, inativo, em licença, em processo de demissão.                                  |
-| **Faixa Etária**     | "Até 30 anos", "31 a 50 anos", "Acima de 50 anos".                                    |
-| **Região/Unidade**  | Matriz, filiais, unidades operacionais (ex.: "Unidade São Paulo").                     |
-| **Jornada**          | Integral (40h), parcial (20h), flexível.                                             |
-| **Tempo de Empresa**| "Até 1 ano", "1 a 5 anos", "Mais de 10 anos".                                         |
-| **Centro de Custo** | Áreas como "Produção", "Administrativo", "Vendas".                                   |
-| **Evento**           | Admissão, demissão, promoção, transferência.                                         |
+| **Critério**          | **Classificações Possíveis**                                                                 |
+|-----------------------|---------------------------------------------------------------------------------------------|
+| **Período**           | Diário, mensal, trimestral, anual ou personalizado (ex.: "Últimos 12 meses").              |
+| **Tipo de Funcionário** | CLT, temporário, terceirizado, estagiário, aprendiz.                                      |
+| **Situação**          | Ativo, afastado, em aviso prévio, desligado.                                               |
+| **Faixa Etária**      | Até 25 anos, 26–35 anos, 36–45 anos, 46–55 anos, acima de 55 anos.                          |
+| **Tempo de Empresa**  | Até 1 ano, 1–3 anos, 3–5 anos, 5–10 anos, acima de 10 anos.                                |
+| **Centro de Custo**   | Administrativo, operacional, comercial, TI, etc.                                          |
+| **Região**            | Sudeste, Sul, Nordeste, Norte, Centro-Oeste (ou por unidade/fábrica).                      |
+| **Tipo de Contratação** | Efetivo, trainee, substituição, projeto específico.                                       |
+| **Jornada de Trabalho** | Integral (40h), parcial (20h), flexível, home office.                                    |
 
 ---
-
 ## **4. Campos e Flags de Apoio**
 Campos usados para aplicar as regras (sem detalhes técnicos):
 
-| **Campo/Flag**            | **Significado**                                                                          |
-|--------------------------|----------------------------------------------------------------------------------------|
-| **situacao_sk**          | Status do funcionário (ativo, inativo, licença, etc.).                                 |
-| **tipo_funcionario_sk**  | Classificação do contrato (efetivo, temporário, terceirizado).                        |
-| **jornada_sk**           | Tipo de jornada (integral, parcial, flexível).                                        |
-| **idade**                | Faixa etária do funcionário.                                                            |
-| **tempo_empresa_key**    | Tempo de casa (em meses/anos).                                                          |
-| **evento_sk**            | Tipo de evento (admissão, demissão, promoção).                                         |
-| **centro_de_custo_sk**   | Área/departamento do funcionário.                                                      |
-| **status_sk**            | Estado atual (ex.: "em processo de demissão", "em treinamento").                       |
-| **pessoa_hc**            | Identificador único para Headcount.                                                    |
-| **pessoa_to**            | Identificador único para Turnover.                                                     |
+| **Campo**               | **Significado**                                                                 |
+|-------------------------|---------------------------------------------------------------------------------|
+| **situacao_sk**         | Status do funcionário (ativo, afastado, desligado).                           |
+| **tipo_funcionario_sk** | Classificação do vínculo (CLT, temporário, terceirizado).                     |
+| **jornada_sk**          | Tipo de jornada (integral, parcial, flexível).                                 |
+| **contratacao_tipo_sk** | Forma de admissão (efetivo, trainee, substituição).                            |
+| **evento_sk**           | Tipo de evento (admissão, demissão, promoção, transferência).                 |
+| **status_sk**           | Estado atual (em experiência, efetivado, em aviso prévio).                     |
+| **pessoa_hc**           | Flag para identificar se o funcionário deve ser contado no **headcount**.      |
+| **pessoa_to**           | Flag para identificar se o funcionário deve ser contado no **turnover**.       |
 
 ---
-
 ## **5. O que é Incluído e o que é Excluído no Dashboard**
 
-### **5.1. Headcount**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Funcionários ativos.                  | Demitidos ou com contrato encerrado. |
-| Em licença médica/férias.             | Aposentados.                          |
-| Contratos temporários na folha.       | Estagiários (não registrados).        |
-| Em período de experiência.            | Em processo de admissão.               |
-| Jornada reduzida (part-time).         | Terceirizados não vinculados.          |
-
-### **5.2. Turnover**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Demissões voluntárias.                | Transferências internas.              |
-| Demissões por justa causa.            | Licenças temporárias.                 |
-| Término de contrato temporário.        | Processo de desligamento não oficial. |
-| Aposentadorias.                       | Terceirizados.                        |
-| Mortes.                               |                                       |
-
-### **5.3. Vagas Abertas**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Vagas aprovadas no orçamento.        | Vagas já preenchidas.                 |
-| Em processo seletivo.                 | Vagas canceladas.                     |
-| Temporariamente suspensas.            | Posições futuras não aprovadas.      |
-| Reposições.                           | Vagas para estagiários.               |
-
-### **5.4. Taxa de Ocupação**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Vagas orçamentadas.                  | Vagas não orçamentadas.               |
-| Vagas ocupadas.                       | Vagas canceladas.                     |
-| Em processo de contratação.           | Posições temporárias.                 |
-
-### **5.5. Custo com Pessoal**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Salários e encargos.                  | Treinamentos.                         |
-| Benefícios (VR, VT, saúde).            | Despesas com recrutamento.            |
-| Bonificações.                         | Benefícios não monetários.            |
-| Encargos trabalhistas.               | Custos com estagiários.              |
-
-### **5.6. Eventos de RH**
-| **Inclusão**                          | **Exclusão**                          |
-|---------------------------------------|---------------------------------------|
-| Admissões.                            | Atualizações cadastrais.              |
-| Demissões.                            | Treinamentos sem mudança de cargo.    |
-| Promoções.                            | Afastamentos não oficiais.            |
-| Transferências.                       | Movimentações de terceirizados.       |
+### **5.1 Resumo Geral**
+| **Métrica**       | **Incluído**                                                                 | **Excluído**                                                                 |
+|-------------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| **Headcount**     | Funcionários ativos, afastados temporários, terceirizados (quando aplicável). | Desligados, candidatos em seleção, estagiários sem registro.                 |
+| **Turnover**      | Demissões voluntárias/involuntárias, aposentadorias, falecimentos.         | Transferências internas, afastamentos, terceirizados (geralmente).           |
+| **Vagas Abertas** | Posições aprovadas no orçamento em processo seletivo.                       | Vagas canceladas, congeladas, ocupadas por realocação interna.               |
+| **Taxa de Ocupação** | Vagas preenchidas (inclusive transferências internas).                     | Vagas em seleção, posições não orçamentárias.                                |
+| **Custo por Funcionário** | Salários, benefícios, encargos, bônus.                                   | Despesas administrativas, multas, custos com terceirizados (geralmente).     |
+| **Tempo Médio de Empresa** | Funcionários ativos e desligados (para histórico).                       | Estagiários, dados incompletos, terceirizados (quando não registrados).      |
 
 ---
-
 ## **6. Glossário**
-| **Termo**               | **Definição**                                                                          |
-|-------------------------|----------------------------------------------------------------------------------------|
-| **Headcount**           | Número total de funcionários ativos em um período.                                    |
-| **Turnover**            | Taxa de rotatividade (saídas de funcionários em relação ao total).                      |
-| **Vagas Abertas**      | Posições disponíveis para contratação, aprovadas no orçamento.                         |
-| **Taxa de Ocupação**   | Porcentagem de vagas preenchidas em relação ao planejado.                              |
-| **OPEX de RH**          | Despesas operacionais com pessoal (salários, benefícios, encargos).                  |
-| **Eventos de RH**       | Movimentações como admissões, demissões, promoções.                                   |
-| **Situação Ativa**      | Funcionário trabalhando ou em licença remunerada.                                     |
-| **Jornada Parcial**     | Contrato com menos horas que o padrão (ex.: 20h/semana).                             |
-| **Centro de Custo**     | Área/departamento responsável por um gasto (ex.: "Produção", "TI").                   |
-| **Flag**                | Indicador que classifica um registro (ex.: "tipo_funcionario_sk = temporário").        |
-| **Link Key**            | Identificador único que relaciona dados de diferentes tabelas.                        |
+| **Termo**               | **Definição**                                                                 |
+|-------------------------|------------------------------------------------------------------------------|
+| **Headcount**           | Número total de funcionários ativos na empresa.                             |
+| **Turnover**            | Taxa de rotatividade (saída de funcionários em relação ao headcount médio).  |
+| **Vagas Abertas**       | Posições disponíveis para contratação, ainda não preenchidas.                |
+| **Taxa de Ocupação**    | Porcentagem de vagas preenchidas em relação ao orçamento.                    |
+| **CLT**                 | Contrato de trabalho regido pela Consolidação das Leis do Trabalho.          |
+| **Terceirizado**        | Funcionário contratado via empresa prestadora de serviços.                   |
+| **Centro de Custo**     | Unidade organizacional que acumula despesas (ex.: departamento, projeto).    |
+| **Flag**                | Indicador (sim/não) usado para classificar registros (ex.: "contabilizar no headcount"). |
+| **Orçamento**           | Planejamento financeiro aprovado para contratações e despesas.               |
+| **Job Sharing**         | Modelo onde uma posição é dividida entre dois ou mais funcionários.         |
+| **Over-hiring**         | Contratação acima do número de vagas previstas no orçamento.                 |
