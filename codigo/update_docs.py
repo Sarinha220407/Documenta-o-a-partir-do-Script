@@ -16,22 +16,43 @@ def gerar_documentacao_qvs(conteudo: str, nome_arquivo: str) -> str:
     data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
     prompt = f"""
-Você é um gerador de documentação formal e clara.
-
-Gere uma explicação detalhada e bem organizada para o script QVS abaixo,
-no formato de um documento formal, mas que seja fácil de entender mesmo por
-pessoas que não têm conhecimento técnico.
-
-O texto deve ser:
-- Escrito em português claro e acessível.
-- Com tom formal e objetivo.
-- Sem termos técnicos complexos ou siglas sem explicação.
-- Organizado em seções e tópicos para facilitar a leitura.
-- Explicar o que o script faz, para que serve e como funciona de forma simplificada.
-- Incluir exemplos ilustrativos quando necessário.
-- Não sugerir alterações ou melhorias no código.
-- Não colocar versões ou datas, ou publico alvo, apenas o conteúdo do script.
-
+Você é uma/um redator(a) técnico(a) e analista de negócios. Sua missão é produzir uma documentação clara, concisa e amigável para usuários finais não técnicos, explicando regras de negócio, condicionais, o que é incluído e o que é excluído em cada contexto,
+                ________________________________________
+                Instruções Gerais
+                •   Leiturabilidade: frases curtas, listas, tópicos
+                •   Formatação: seções numeradas, subtítulos, tabelas simples quando necessário e glossário no final.
+                •   Clareza: explicar termos técnicos na primeira vez que aparecerem.
+                •   Aplicabilidade: deve servir para qualquer tipo de script de dashboard (RH, Vendas, Financeiro, Operações, etc.), sempre priorizando explicar regras de negócio.
+                •   Estilo: Explicar as condicionais somente em linguagem natural, sem menções a códigos, variáveis ou campos técnicos.
+                evitar parágrafos, sempre que puder use tópicos
+                •   Não adicionar versao e ultima atualização alem do cabeçalho
+                ________________________________________
+                Estrutura Mínima da Documentação
+                1.  Visão Geral
+                o   Objetivo do documento.
+                o   Explicar que cada métrica ou indicador segue critérios de inclusão e exclusão. especifique com detalhe cada critério e coloque em forma de tópico
+                o   Orientar como identificar quando algo deve ou não ser contado.
+                3.  Regras de Negócio por Indicador/Métrica
+                Para cada indicador (ex.: Headcount, Vendas, Faturamento, Turnover, Vagas, Taxa de Ocupação, etc.):
+                explicar sempre em palavras, sem usar códigos ou abreviações
+                o   Definição da métrica.
+                o   Critérios de Inclusão (o que é contado).
+                o   Critérios de Exclusão (o que não é contado).
+                o   Casos Especiais (tratamentos atípicos e exceções).
+                4.  Condicionais e Classificações
+                o   Explicar como os dados são segmentados (por período, faixa de valor, categoria, status, região, etc.).
+                o   Exemplo: "Idade até 30 anos" vs. "Acima de 50 anos", "Ticket Médio < R$ 100".
+                5.  Campos e Flags de Apoio
+                o   Listar campos do dataset usados para aplicar as regras.
+                o   Explicar o significado de cada flag.
+                6.  O que é Incluído e o que é Excluído no Dashboard
+                o   Resumo geral para facilitar leitura rápida.
+                o   Tabela de duas colunas (Inclusão / Exclusão) por métrica.
+                8.  Glossário
+                o   Definição de termos técnicos e siglas.
+                ________________________________________
+                Saída Esperada
+                Entregar um único documento que explique, para cada métrica/indicador do dashboard, o que é contado, o que não é contado, quais são os casos especiais. Sempre manter o foco nas regras de negócio e nos critérios de inclusão e exclusão.
 Script:
 {conteudo}
     """

@@ -1,167 +1,291 @@
 # Documentação Técnica
 
 **Arquivo:** `gd_headcount.qvs`  
-**Última atualização:** 15/08/2025 11:53:12
+**Última atualização:** 15/08/2025 13:29:53
 
-# **Documentação do Script QVS – People Analytics (Recursos Humanos)**
-
-## **1. Introdução**
-Este documento explica um script utilizado para organizar e preparar dados de **Recursos Humanos (RH)** em um sistema de análise de dados. O objetivo é transformar informações brutas sobre funcionários, hierarquias, desligamentos e orçamentos em tabelas estruturadas, facilitando relatórios e tomadas de decisão.
-
-O script está dividido em **seções lógicas**, cada uma responsável por uma etapa específica do processo, como:
-- Configurações iniciais (formatação de datas, moedas, etc.).
-- Criação de calendários e tabelas de tempo.
-- Carregamento de dados brutos.
-- Organização de dimensões (tabelas de referência).
-- Geração de fatos (tabelas com informações operacionais).
-- Armazenamento dos resultados.
+# **Documentação de Regras de Negócio – Dashboard de Recursos Humanos (RH)**
+*Objetivo:* Explicar de forma clara e acessível as regras de inclusão, exclusão e condicionais aplicadas às métricas do dashboard de RH.
 
 ---
 
-## **2. Configurações Iniciais**
-Esta seção define padrões de formatação para que os dados sejam exibidos de maneira consistente.
+## **1. Visão Geral**
+### **Objetivo do Documento**
+Este documento detalha:
+- **O que é contado** em cada métrica (ex.: *Headcount*, *Turnover*, *Tempo na Empresa*).
+- **O que é excluído** e por quê.
+- **Casos especiais** (exceções ou tratamentos específicos).
+- **Como os dados são segmentados** (por período, faixa etária, região, etc.).
 
-### **2.1. Formatação de Números, Datas e Moedas**
-| Configuração               | Descrição                                                                 | Exemplo de Saída       |
-|----------------------------|---------------------------------------------------------------------------|------------------------|
-| `ThousandSep='.'`          | Separador de milhar (ponto).                                              | `1.000`                |
-| `DecimalSep=','`          | Separador decimal (vírgula).                                              | `12,34`                |
-| `MoneyFormat`              | Formato de moeda (Real Brasileiro).                                       | `R$1.234,56`           |
-| `DateFormat='DD.MM.YYYY'` | Formato de data (dia/mês/ano).                                            | `15.05.2023`           |
-| `MonthNames`               | Nomes abreviados dos meses em português.                                  | `jan`, `fev`, `mar`...|
-| `DayNames`                 | Nomes abreviados dos dias da semana.                                      | `seg`, `ter`, `qua`... |
-
-### **2.2. Caminhos de Arquivos (Pastas de Dados)**
-O script define **localizações** onde os dados são armazenados ou buscados, organizados em camadas:
-- **Bronze**: Dados brutos (sem tratamento).
-- **Silver**: Dados limpos e validados.
-- **Gold**: Dados prontos para análise.
-- **Manual Source**: Dados inseridos manualmente.
-- **Fontes Externas**: Dados de outras origens (ex.: planilhas).
+### **Critérios Gerais de Inclusão/Exclusão**
+Todas as métricas seguem regras baseadas em:
+- **Status do funcionário** (ativo, desligado, afastado, etc.).
+- **Tipo de contratação** (CLT, temporário, estagiário, etc.).
+- **Período de referência** (data de admissão, desligamento ou corte do relatório).
+- **Hierarquia e localização** (filial, centro de custo, diretoria).
 
 ---
-## **3. Criação de Tabelas Auxiliares**
-### **3.1. Tabela de Calendário (`gd_calendario_d`)**
-**Objetivo**: Criar um calendário com todas as datas entre **01/01/2014** e o último dia do ano corrente, incluindo informações como:
-- Dia da semana.
-- Mês e ano.
-- Trimestre e semestre.
-- Se é feriado, final de semana ou dia útil.
-
-**Exemplo de campos gerados**:
-| Campo               | Descrição                                  | Exemplo          |
-|---------------------|--------------------------------------------|------------------|
-| `date_key`          | Data no formato `DD.MM.YYYY`.              | `15.05.2023`     |
-| `dia_semana_nome`   | Nome do dia da semana.                     | `seg`            |
-| `mes_atual`         | Indica se é o mês atual (`Sim`/`Não`).      | `Sim`            |
-| `final_semana`      | Indica se é final de semana (`Sim`/`Não`).  | `Não`            |
-
-**Uso**: Permite analisar dados por períodos (ex.: "Quantos funcionários foram contratados no 1º trimestre de 2023?").
+## **2. Regras de Negócio por Indicador/Métrica**
 
 ---
 
-### **3.2. Tabela de Tempo na Empresa (`gd_tempo_companhia_d`)**
-**Objetivo**: Classificar o tempo de serviço dos funcionários em grupos, como:
-- **Grupos gerenciais** (ex.: "1-3 anos", "4-6 anos").
-- **Grupos operacionais** (ex.: "0-3 meses", "3-6 meses").
-- Indicador de **novos contratados** (`new_hire`).
+### **2.1 Headcount (Número de Funcionários Ativos)**
+**Definição:**
+Contagem de **funcionários ativos** na empresa em um determinado período.
 
-**Exemplo de classificação**:
-| Dias na Empresa | Grupo Gerencial | Grupo Operacional | `new_hire` |
-|-----------------|-----------------|-------------------|------------|
-| 45              | Ano 1           | 3-6 meses         | `TRUE`     |
-| 1.200           | Ano 3-4         | Ano 3 - 12-18 meses | `FALSE`   |
+#### **Critérios de Inclusão**
+- Funcionários com **status = "Ativo"** na data de referência.
+- Todos os **tipos de contratação** (CLT, temporários, estagiários, etc.), **exceto** os listados em *Critérios de Exclusão*.
+- Funcionários **readmitidos** (contados como novos registros a partir da data de readmissão).
+- Funcionários em **afastamentos temporários** (ex.: licença médica, férias) **se mantiverem vínculo ativo**.
 
-**Uso**: Auxilia em análises como turnover (rotatividade) por tempo de empresa.
+#### **Critérios de Exclusão**
+- Funcionários **desligados** (independentemente da data).
+- **Terceirizados** (não são contabilizados no *Headcount* interno).
+- **Funcionários em processo de demissão** (status = "Avisado" ou "Demissionário").
+- **Estagiários não remunerados** (se houver).
+- **Funcionários com contrato suspenso** (ex.: licença não remunerada).
 
----
-## **4. Carregamento de Dados Brutos**
-Nesta seção, o script **importa dados já tratados** (da camada *Silver*) e os prepara para análise. Os principais conjuntos de dados são:
-
-| Tabela                          | Descrição                                                                 |
-|---------------------------------|---------------------------------------------------------------------------|
-| `sv_headcount_f_raw`           | Informações atuais dos funcionários (nome, cargo, salário, hierarquia).  |
-| `sv_termination_f_raw`         | Registros de desligamentos (data, motivo, tempo na empresa).              |
-| `sv_excel_hc_orcamento_historico_raw` | Orçamentos históricos de headcount (plano vs. real).               |
-| `sv_posicoes_raw`               | Posições/cargos disponíveis na empresa.                                  |
-
-**Processo comum**:
-1. **Adição de chaves únicas** (`Hash128`): Códigos que identificam registros sem ambiguidade (ex.: `hierarquia_sk` para hierarquias).
-2. **Vinculação a datas**: Associação a `date_key` (calendário) ou `tempo_empresa_key` (tempo na empresa).
+#### **Casos Especiais**
+- **Funcionários em transição entre áreas:**
+  - Contados na **nova área** a partir da data oficial de transferência.
+- **Funcionários com dupla função:**
+  - Contados **uma única vez**, na função principal (definida pelo sistema).
+- **Contratos temporários:**
+  - Incluídos no *Headcount* **somente durante o período de vigência do contrato**.
 
 ---
-## **5. Criação de Dimensões (Tabelas de Referência)**
-Dimensões são **tabelas que descrevem atributos** usados para agrupar dados. Exemplos:
 
-| Dimensão               | Descrição                                                                 | Campos Principais                          |
-|------------------------|---------------------------------------------------------------------------|--------------------------------------------|
-| `gd_employee_d`        | Dados pessoais dos funcionários.                                          | `pessoa`, `nome`, `cpf`, `genero`, `email` |
-| `gd_hierarquia_d`      | Estrutura hierárquica (gestores, níveis).                                 | `hierarquia_sk`, `gestor_direto_nome`      |
-| `gd_funcao_d`          | Cargos e funções.                                                         | `funcao_sk`, `funcao_nome`, `carreira`     |
-| `gd_idade_d`           | Classificação por faixa etária e geração (ex.: Geração Z).               | `grupo_idade`, `geracao`                   |
-| `gd_centro_de_custo_d` | Centros de custo (áreas/departamentos).                                   | `centro_de_custo_sk`, `diretoria`          |
+### **2.2 Turnover (Rotatividade)**
+**Definição:**
+Porcentagem de funcionários que **saíram da empresa** em um período, em relação ao *Headcount* médio do mesmo período.
 
-**Exemplo de uso**:
-- **"Quantos funcionários da Geração Y trabalham na Diretoria de Operações?"** → Cruza `gd_employee_d` (geração) com `gd_hierarquia_d` (diretoria).
+#### **Critérios de Inclusão**
+- **Desligamentos voluntários ou involuntários** (demissões, pedidos de demissão, aposentadorias).
+- Funcionários com **status = "Desligado"** na data de referência.
+- **Todas as causas de desligamento** (performance, redução de quadro, falecimento, etc.).
 
----
-## **6. Criação de Tabelas Fato (Informações Operacionais)**
-Tabelas fato armazenam **dados transacionais** (ex.: contratações, desligamentos) vinculados às dimensões.
+#### **Critérios de Exclusão**
+- **Transferências internas** (não são consideradas saídas).
+- **Afastamentos temporários** (ex.: licença maternidade, se o vínculo permanecer ativo).
+- **Terceirizados** (não entram no cálculo).
+- **Funcionários em processo de demissão** (ainda não desligados oficialmente).
 
-| Tabela Fato                     | Descrição                                                                 | Campos Principais                          |
-|---------------------------------|---------------------------------------------------------------------------|--------------------------------------------|
-| `gd_headcount_f`                | Headcount atual (funcionários ativos).                                    | `pessoa`, `date_key`, `funcao_sk`          |
-| `gd_termination_f`              | Desligamentos.                                                            | `pessoa`, `termination_date`, `motivo`     |
-| `gd_excel_hc_orcamento_historico_f` | Comparativo entre orçado e real.                     | `centro_de_custo_sk`, `orcado`, `real`     |
-| `gd_posicoes_f`                 | Posições disponíveis.                                                     | `funcao_sk`, `vagas`                       |
-
-**Processo**:
-1. **Carrega dados brutos**.
-2. **Remove campos desnecessários** (ex.: dados pessoais sensíveis como CPF).
-3. **Armazena na camada *Gold*** para uso em relatórios.
+#### **Casos Especiais**
+- **Readmissões:**
+  - Se um funcionário sai e retorna, o desligamento **é contado no *Turnover***, mas a readmissão **não reduz o indicador**.
+- **Desligamentos em massa (layoffs):**
+  - Tratados como um **evento único** no cálculo (evita distorções).
+- **Funcionários com contrato temporário encerrado:**
+  - Incluídos no *Turnover* **somente se não forem recontratados** em até 30 dias.
 
 ---
-## **7. Armazenamento e Finalização**
-### **7.1. Salvamento dos Dados**
-Todas as tabelas geradas são salvas em arquivos `.QVD` (formato otimizado do Qlik) na camada *Gold*, seguindo a estrutura:
+### **2.3 Tempo na Empresa**
+**Definição:**
+Tempo médio ou distribuído que os funcionários permanecem na empresa, segmentado por faixas.
+
+#### **Critérios de Inclusão**
+- **Funcionários ativos e desligados** (para análise histórica).
+- **Tempo calculado em dias** a partir da **data de admissão** até:
+  - Data atual (para ativos).
+  - Data de desligamento (para inativos).
+
+#### **Critérios de Exclusão**
+- **Períodos de afastamento não remunerado** (ex.: licença sem vínculo).
+- **Tempo em outras empresas do grupo** (somente o período na empresa atual é considerado).
+
+#### **Faixas de Tempo (Grupos)**
+| **Grupo Gerencial**       | **Grupo Operacional**       |
+|---------------------------|-----------------------------|
+| Ano 1                     | 0–3 meses                   |
+| Ano 2                     | 3–6 meses                   |
+| Ano 3                     | 9–12 meses                  |
+| Anos 4–6                  | Ano 2 – 18–24 meses         |
+| Anos 7–10                 | Ano 3 – 24–30 meses         |
+| Anos 11–15                | Ano 4 – 30–36 meses         |
+| Mais que 15 anos          | Mais que 4 anos             |
+
+#### **Casos Especiais**
+- **Funcionários readmitidos:**
+  - O tempo é **zerado** na readmissão (novo ciclo).
+- **Transferências entre empresas do grupo:**
+  - O tempo é **acumulado** se houver continuidade contratual.
+
+---
+### **2.4 Vagas Abertas**
+**Definição:**
+Número de **posições disponíveis para contratação** em um período.
+
+#### **Critérios de Inclusão**
+- Vagas **aprovadas no orçamento** e ainda não preenchidas.
+- Vagas **em processo seletivo** (independentemente do status).
+- Vagas **reabertas** após desligamento.
+
+#### **Critérios de Exclusão**
+- Vagas **congeladas** (sem previsão de preenchimento).
+- Vagas **temporárias** (ex.: substituição de licença médica).
+- Posições **em reestruturação** (sem definição clara).
+
+#### **Casos Especiais**
+- **Vagas recém-criadas:**
+  - Contadas a partir da **data de aprovação oficial**.
+- **Vagas com múltiplas oportunidades:**
+  - Contadas como **uma única vaga** (ex.: 5 vagas para o mesmo cargo = 1 registro).
+
+---
+### **2.5 Taxa de Ocupação**
+**Definição:**
+Porcentagem de **vagas preenchidas** em relação ao total de posições previstas no orçamento.
+
+#### **Cálculo:**
 ```
-lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/03. Gold/
+Taxa de Ocupação = (Headcount Atual / Total de Posições Orçamentadas) × 100
 ```
-Exemplos:
-- `gd_calendario_d.QVD`
-- `gd_employee_d.QVD`
-- `gd_headcount_f.QVD`
 
-### **7.2. Limpeza de Tabelas Temporárias**
-Ao final, o script **exclui tabelas temporárias** (`DROP TABLE`) para liberar memória, mantendo apenas os arquivos salvos.
+#### **Critérios de Inclusão**
+- **Todas as posições orçamentadas** (independentemente de estarem abertas ou não).
+- **Funcionários ativos** (incluindo afastamentos temporários).
 
----
-## **8. Fluxo Resumido do Script**
-1. **Configurações**: Define formatos e caminhos.
-2. **Tabelas auxiliares**: Cria calendário e classificações de tempo.
-3. **Carregamento**: Importa dados brutos da camada *Silver*.
-4. **Dimensões**: Organiza tabelas de referência (funcionários, cargos, hierarquias).
-5. **Fatos**: Prepara tabelas com informações operacionais (headcount, desligamentos).
-6. **Salvamento**: Armazena tudo na camada *Gold*.
-7. **Finalização**: Exclui tabelas temporárias e encerra.
+#### **Critérios de Exclusão**
+- Posições **não orçamentadas** (ex.: contratações emergenciais).
+- Vagas **em processo de fechamento** (ex.: realocação de verba).
+
+#### **Casos Especiais**
+- **Orçamento revisado:**
+  - A taxa é recalculada com base no **número mais recente** de posições aprovadas.
+- **Overstaffing (excesso de funcionários):**
+  - Se o *Headcount* superar o orçamento, a taxa **ultrapassa 100%**.
 
 ---
-## **9. Exemplo Prático: Análise de Turnover**
-**Pergunta**: *"Qual a taxa de desligamentos de funcionários com menos de 1 ano na empresa em 2023?"*
+### **2.6 Admissões (New Hires)**
+**Definição:**
+Número de **novos funcionários contratados** em um período.
 
-**Como o script ajuda**:
-1. **Filtra `gd_termination_f`** por `termination_date` em 2023.
-2. **Cruza com `gd_tempo_companhia_d`** para identificar `tempo_empresa_key < 365` (menos de 1 ano).
-3. **Agrupa por `grupo_operacao`** (ex.: "0-3 meses", "3-6 meses").
-4. **Calcula a taxa**: `(Desligamentos no grupo) / (Total de funcionários no grupo)`.
+#### **Critérios de Inclusão**
+- **Primeira admissão** na empresa (independentemente do tipo de contrato).
+- **Readmissões** (contadas como novas admissões).
+- Contratações **efetivas ou temporárias** (desde que com vínculo formal).
+
+#### **Critérios de Exclusão**
+- **Transferências internas** (não são novas admissões).
+- **Terceirizados** (não entram no cálculo).
+- **Estagiários não remunerados**.
+
+#### **Casos Especiais**
+- **Contratos de experiência:**
+  - Contados como admissão **somente após a efetivação**.
+- **Funcionários em período probatório:**
+  - Incluídos na data de **início do contrato**.
 
 ---
-## **10. Observações Finais**
-- **Segurança**: Dados sensíveis (como CPF) são removidos das tabelas fato, mantendo apenas chaves anônimas (`sk`).
-- **Flexibilidade**: O calendário e as classificações de tempo permitem análises por qualquer período.
-- **Integração**: As tabelas *Gold* podem ser usadas diretamente em dashboards ou relatórios.
+### **2.7 Demissões (Terminations)**
+**Definição:**
+Número de **funcionários desligados** da empresa em um período.
 
-Este script é **fundamental para transformar dados de RH em informações estratégicas**, como:
-- Análise de rotatividade (`turnover`).
-- Planejamento de headcount (contratações vs. orçamento).
-- Distribuição de funcionários por idade, cargo ou localização.
+#### **Critérios de Inclusão**
+- **Todos os tipos de desligamento** (voluntário, involuntário, aposentadoria, falecimento).
+- **Desligamentos oficiais** (data de saída registrada no sistema).
+
+#### **Critérios de Exclusão**
+- **Transferências para outras empresas do grupo** (não são demissões).
+- **Afastamentos temporários** (ex.: licença médica).
+- **Funcionários em processo de demissão** (ainda não desligados).
+
+#### **Casos Especiais**
+- **Demissões em massa:**
+  - Registradas como um **evento único** para evitar distorções.
+- **Funcionários que saem e retornam:**
+  - O desligamento é contado, mas a readmissão **não anula a demissão**.
+
+---
+### **2.8 Diversidade (Gênero, Idade, Raça)**
+**Definição:**
+Distribuição de funcionários por **grupos demográficos**.
+
+#### **Segmentações**
+| **Categoria**       | **Faixas**                                                                 |
+|---------------------|---------------------------------------------------------------------------|
+| **Idade**           | 0–10, 11–20, 21–30, 31–40, 41–50, 51–60, 61–70, 71+                       |
+| **Geração**         | Geração Alpha, Z, Y, X, Boomers, Silenciosa                              |
+| **Gênero**          | Masculino, Feminino, Não binário, Outros                                 |
+| **Raça/Etnia**      | Branca, Negra, Parda, Amarela, Indígena, Não declarada                  |
+
+#### **Critérios de Inclusão**
+- **Todos os funcionários ativos** (independentemente do tipo de contrato).
+- Dados **autodeclarados** (priorizados sobre registros antigos).
+
+#### **Critérios de Exclusão**
+- Funcionários **sem informação declarada** (ex.: raça ou gênero não preenchidos).
+- **Terceirizados** (não incluídos na análise de diversidade interna).
+
+#### **Casos Especiais**
+- **Funcionários com gênero não binário:**
+  - Classificados em **"Outros"** se não houver categoria específica.
+- **Raça/Etnia não declarada:**
+  - Registrados como **"Não informado"** (não são excluídos do total).
+
+---
+## **3. Condicionais e Classificações**
+### **Como os Dados São Segmentados**
+| **Critério**          | **Exemplos de Segmentação**                                                                 |
+|-----------------------|-------------------------------------------------------------------------------------------|
+| **Período**           | Mês atual, trimestre, ano, histórico vs. futuro                                           |
+| **Faixa Etária**      | 21–30 anos, 41–50 anos, Geração Y                                                          |
+| **Localização**       | Filial, região, centro de custo, diretoria                                                |
+| **Tipo de Contrato**  | CLT, temporário, estagiário, terceirizado (quando aplicável)                             |
+| **Status**            | Ativo, desligado, afastado, em transição                                                 |
+| **Tempo na Empresa**  | 0–3 meses, 1–3 anos, 10+ anos                                                             |
+| **Cargo/Nível**       | Operacional, liderança, diretoria                                                         |
+| **Gênero**            | Masculino, feminino, não binário                                                         |
+| **Raça/Etnia**        | Branca, negra, parda, indígena                                                            |
+
+---
+## **4. Campos e Flags de Apoio**
+### **Campos Usados para Aplicar Regras**
+| **Campo**                     | **Significado**                                                                                     | **Exemplo de Uso**                                  |
+|-------------------------------|-----------------------------------------------------------------------------------------------------|----------------------------------------------------|
+| `headcount_status`            | Status do funcionário (Ativo, Desligado, Afastado).                                                 | Filtrar só ativos para *Headcount*.                |
+| `tipo_funcionario_cod`       | Tipo de contrato (CLT, temporário, estagiário).                                                    | Excluir terceirizados das métricas.                |
+| `situacao_cod`                | Situação do funcionário (ex.: "Demissionário", "Aposentado").                                      | Identificar desligamentos para *Turnover*.         |
+| `tempo_empresa_dias`          | Dias desde a admissão.                                                                             | Classificar em faixas de tempo.                   |
+| `new_hire_flag`               | Indica se o funcionário é uma nova contratação (sim/não).                                          | Contar admissões no período.                      |
+| `grupo_gerencial`             | Faixa de tempo na empresa (ex.: "Ano 1", "Anos 4–6").                                              | Análise de senioridade.                            |
+| `grupo_idade`                 | Faixa etária (ex.: "21–30", "41–50").                                                              | Relatórios de diversidade.                         |
+| `geracao`                     | Geração do funcionário (ex.: "Millennial", "Boomer").                                              | Segmentação por perfil demográfico.               |
+| `contratacao_tipo`            | Tipo de admissão (ex.: "Efetivo", "Temporário").                                                   | Filtrar contratações temporárias.                  |
+| `jornada_mensal`              | Carga horária mensal (ex.: 160h, 220h).                                                            | Classificar por regime de trabalho.                |
+| `grupo_diretoria`             | Área de atuação (ex.: "Operações", "RH").                                                          | Análise por departamento.                           |
+
+---
+## **5. O que é Incluído e o que é Excluído no Dashboard**
+### **Resumo Geral**
+| **Métrica**          | **Incluído**                                                                 | **Excluído**                                                                 |
+|----------------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| **Headcount**         | Funcionários ativos, afastados com vínculo, readmitidos.                  | Desligados, terceirizados, estagiários não remunerados.                     |
+| **Turnover**          | Desligamentos voluntários/involuntários.                                   | Transferências internas, afastamentos temporários.                        |
+| **Tempo na Empresa**  | Dias desde a admissão (ativos e desligados).                               | Períodos sem vínculo (ex.: licença não remunerada).                        |
+| **Vagas Abertas**     | Posições orçamentadas e não preenchidas.                                   | Vagas congeladas ou temporárias.                                           |
+| **Taxa de Ocupação**  | Headcount vs. posições orçamentadas.                                       | Posições não orçamentadas.                                                |
+| **Admissões**         | Novas contratações (inclui readmissões).                                    | Transferências internas, terceirizados.                                   |
+| **Demissões**         | Todos os desligamentos oficiais.                                           | Transferências para outras empresas do grupo.                             |
+| **Diversidade**       | Funcionários ativos com dados declarados.                                  | Terceirizados, dados não informados.                                       |
+
+---
+## **6. Glossário**
+| **Termo**               | **Definição**                                                                                     |
+|-------------------------|---------------------------------------------------------------------------------------------------|
+| **Headcount**           | Número total de funcionários ativos em um período.                                               |
+| **Turnover**            | Taxa de rotatividade (saídas de funcionários em relação ao total).                                |
+| **New Hire**            | Funcionário recém-contratado (geralmente nos primeiros 6–12 meses).                              |
+| **Terceirizado**        | Profissional contratado por empresa externa (não faz parte do quadro interno).                  |
+| **Readmissão**          | Funcionário que saiu e voltou a trabalhar na empresa.                                            |
+| **Orçamento de Pessoal**| Número de posições aprovadas para contratação em um período.                                    |
+| **Overstaffing**        | Situação em que o número de funcionários supera o orçamento.                                    |
+| **Afiliada/Coligada**   | Empresa do mesmo grupo econômico.                                                                |
+| **Escala de Trabalho**  | Regime de horas trabalhadas (ex.: 160h/mês, 220h/mês).                                           |
+| **CBO**                | Classificação Brasileira de Ocupações (código que padroniza cargos).                            |
+| **Jornada Mensal**      | Total de horas trabalhadas por mês conforme contrato.                                           |
+| **Flag**               | Indicador booleano (sim/não) para classificar registros (ex.: `new_hire_flag`).                   |
+| **Hash/Chave (SK)**     | Código único gerado para identificar registros sem repetição (ex.: `hierarquia_sk`).            |
+| **Diretoria**          | Nível hierárquico acima das gerências (ex.: Diretoria de Operações).                              |
+| **Centro de Custo**    | Unidade organizacional que acumula despesas (ex.: RH, Produção).                                  |
+| **Geração Alpha/Z/Y**   | Classificação por faixa etária/nascimento (ex.: Geração Y = nascidos entre 1981–1995).           |

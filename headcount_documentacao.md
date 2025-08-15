@@ -1,175 +1,288 @@
 # Documentação Técnica
 
 **Arquivo:** `headcount.qvs`  
-**Última atualização:** 15/08/2025 11:54:14
+**Última atualização:** 15/08/2025 13:31:22
 
-# **Documentação do Script QVS – Processamento de Dados de Recursos Humanos**
-
-## **1. Introdução**
-Este documento explica, de forma clara e organizada, o funcionamento de um script utilizado para processar e preparar dados de **Recursos Humanos (RH)** em um ambiente de análise. O objetivo principal é transformar informações brutas (como registros de funcionários, demissões, cargos e hierarquias) em tabelas estruturadas, prontas para serem usadas em relatórios e painéis de gestão.
-
-O script segue uma abordagem de **camadas de dados** (Bronze, Silver e Gold), onde:
-- **Bronze**: Dados originais, sem tratamento.
-- **Silver**: Dados limpos, enriquecidos e padronizados.
-- **Gold**: Dados prontos para análise, com indicadores e métricas calculadas.
+# **Documentação de Regras de Negócio – Dashboard de Recursos Humanos (RH)**
+*Objetivo:* Explicar as regras de inclusão, exclusão e condicionais aplicadas às métricas do dashboard de RH, garantindo clareza para usuários finais não técnicos.
 
 ---
 
-## **2. Configurações Iniciais**
-Antes de processar os dados, o script define padrões de formatação para garantir que números, datas, moedas e textos sejam exibidos de maneira consistente, seguindo o padrão brasileiro.
+## **1. Visão Geral**
+### **Objetivo do Documento**
+- Detalhar **o que é contado** e **o que é excluído** em cada métrica do dashboard.
+- Explicar **critérios de segmentação** (ex.: por idade, tipo de demissão, cargo, etc.).
+- Listar **casos especiais** e exceções nas regras.
 
-### **2.1. Formatação de Números e Moedas**
-- **Separador de milhar**: `.` (ponto) → Exemplo: `1.000`
-- **Separador decimal**: `,` (vírgula) → Exemplo: `R$ 1.234,56`
-- **Formato de moeda**: `R$` (Real brasileiro), com duas casas decimais.
-
-### **2.2. Formatação de Data e Hora**
-- **Data**: `DD.MM.AAAA` → Exemplo: `15.05.2024`
-- **Hora**: `hh:mm:ss` → Exemplo: `14:30:00`
-- **Primeiro dia da semana**: Domingo (configurado como `6`).
-- **Idioma**: Português do Brasil (`pt-BR`), para nomes de meses e dias.
-
-### **2.3. Caminhos dos Arquivos (Pastas de Dados)**
-O script define onde os dados serão lidos e salvos, usando **caminhos lógicos** (como `lib://`), que apontam para pastas específicas no servidor. Exemplos:
-- **Bronze**: Dados brutos (`bz_headcount_f.QVD`).
-- **Silver**: Dados processados (`sv_headcount_f.QVD`).
-- **Gold**: Dados finais para análise.
-- **Manual Source**: Dados inseridos manualmente.
-- **Fontes Externas**: Dados de sistemas externos.
+### **Como Identificar o Que Deve Ser Contado?**
+Cada métrica segue **regras de inclusão e exclusão** baseadas em:
+- **Status do funcionário** (ativo, afastado, demitido, etc.).
+- **Tipo de contrato** (CLT, estagiário, aprendiz, etc.).
+- **Período de referência** (data de admissão, demissão, etc.).
+- **Características demográficas** (idade, gênero, PCD, etc.).
+- **Flags de negócio** (ex.: "Novo Contratado", "Readmitido", etc.).
 
 ---
-## **3. Carregamento dos Dados Brutos (Bronze)**
-Nesta etapa, o script **lê os arquivos originais** (no formato `.QVD`, um tipo de arquivo otimizado para dados) e os armazena em tabelas temporárias para processamento.
+---
 
-### **3.1. Tabelas Carregadas**
-| **Tabela** | **Descrição** |
-|------------|---------------|
-| `bz_headcount_f` | Registros atuais de funcionários (matrícula, nome, cargo, salário, etc.). |
-| `bz_headcount_hist_f` | Histórico de movimentações de funcionários (admissões, demissões, transferências). |
-| `bz_headcount_latest_f` | Último registro de cada funcionário (dados mais recentes). |
-| `bz_posicoes_f` | Posições (vagas) abertas ou ocupadas na empresa. |
-| `bz_pessoa_d` | Dados pessoais dos funcionários (CPF, RG, endereço, etc.). |
-| `bz_hierarquia_d` | Hierarquia organizacional (quem reporta a quem). |
-| `bz_excel_funcao_d` | Catálogo de cargos (códigos, descrições, níveis hierárquicos). |
-| `bz_externo_centro_custo_d` | Centros de custo (áreas ou departamentos da empresa). |
+## **2. Regras de Negócio por Indicador/Métrica**
 
 ---
-## **4. Tabelas de Mapeamento (Dicionários)**
-Para padronizar informações, o script usa **tabelas de mapeamento**, que funcionam como "dicionários" para traduzir códigos em nomes legíveis.
 
-### **4.1. Exemplos de Mapeamentos**
-| **Mapeamento** | **Finalidade** |
-|----------------|----------------|
-| `coligada_d` | Converte códigos de empresas do grupo (ex: `1 = Eldorado`, `2 = Florestal`). |
-| `CLASSIFICAÇÃO_MAP` | Classifica demissões como **Voluntárias** ou **Involuntárias**. |
-| `MAP_EVENTOS` | Traduz códigos de eventos (ex: `2 = Salário Bruto`, `5 = Férias`). |
-| `Map_funcao` | Associa nomes de cargos aos seus códigos (ex: `Analista = 10001`). |
+### **2.1 Headcount (Número de Funcionários)**
+**Definição:**
+Total de funcionários **ativos** ou **afastados temporariamente** na empresa em um determinado período.
 
----
-## **5. Processamento dos Dados (Silver)**
-Nesta fase, os dados brutos são **limpos, enriquecidos e transformados** em tabelas estruturadas para análise.
+#### **Critérios de Inclusão (o que é contado):**
+- Funcionários com **situação ativa** (`A`), incluindo:
+  - Em férias (`F`).
+  - Licença maternidade (`E`).
+  - Licença médica (`O`).
+  - Aviso prévio (`V`).
+- Funcionários **admitidos no mês** (mesmo que demitidos no mesmo mês).
+- Funcionários **offshore** (coligadas 30, 31, 32).
+- Funcionários **readmitidos** (com mais de uma admissão no histórico).
+- Funcionários com **centro de custo válido** (código > 99).
 
-### **5.1. Tabelas Processadas**
-#### **a) Centro de Custo (`sv_centro_de_custo_d`)**
-- **O que faz**: Organiza os centros de custo (departamentos) e os classifica em grupos (ex: `Corporativo`, `Industrial`, `Florestal`).
-- **Exemplo**:
-  - Código `1000` → Departamento `Financeiro` → Grupo `Corporativo`.
+#### **Critérios de Exclusão (o que NÃO é contado):**
+- **Tipos de funcionários excluídos:**
+  - Conselheiros (`Conselheiro Adm`, `Conselheiro Fiscal`).
+  - Cargos com códigos `703`, `704`, `706`.
+  - Tipos de contrato: `U` (Outros), `S` (Pensionista).
+- **Situações excluídas:**
+  - Demitidos (`D`) **exceto** se demitidos no mesmo mês da admissão.
+  - Matrículas apagadas (`Z`).
+  - Admissões futuras (data de admissão > data atual).
+- **Funcionários específicos:**
+  - Lista de chapas excluídas manualmente (ex.: `999907338`, `50003102`, etc.).
 
-#### **b) Funções (`sv_funcao_d`)**
-- **O que faz**: Padroniza os cargos, classificando-os como **Líder/Não Líder** e **Operacional/Não Operacional**.
-- **Exemplo**:
-  - Cargo `Gerente de Produção` → **Líder** e **Não Operacional**.
-
-#### **c) Headcount (`sv_headcount_f`)**
-- **O que faz**: Consolida todos os registros de funcionários, calculando métricas como:
-  - Tempo na empresa.
-  - Faixa salarial (ex: `Entre 90% e 100% do salário de referência`).
-  - Status (`Ativo`, `Afastado`, `Novo Contratado`).
-  - Hierarquia (quem é o gestor direto).
-- **Exemplo de cálculo**:
-  - Se um funcionário foi admitido em `01.01.2024` e hoje é `15.05.2024`, o script calcula que ele está há **135 dias** na empresa.
-
-#### **d) Demissões (`sv_termination_f`)**
-- **O que faz**: Registra funcionários demitidos, classificando:
-  - Tipo de demissão (`Voluntária` ou `Involuntária`).
-  - Motivo (`Aposentadoria`, `Desempenho`, etc.).
-  - Se o funcionário era **novo** (menos de 1 ano na empresa).
-- **Exemplo**:
-  - Um funcionário demitido com código `2` → Classificado como **Involuntário**.
-
-#### **e) Posições (`sv_posicoes_f`)**
-- **O que faz**: Lista vagas abertas ou em processo de preenchimento, indicando:
-  - Status (`Em Andamento`, `Concluída`).
-  - Se é para **aprendiz** ou **estagiário**.
-- **Exemplo**:
-  - Vaga `Analista de TI` → Status `Em Andamento` → Não é para aprendiz.
+#### **Casos Especiais:**
+- **Admitidos e demitidos no mesmo mês:**
+  - São contados como **headcount**, mas marcados com `Situação TEXT = "C/Dem no mês"`.
+- **Funcionários com salário fora da faixa padrão:**
+  - Classificados em grupos como:
+    - `Menor 80%` do salário de referência.
+    - `Entre 80% e 90%`.
+    - `Acima de 120%`.
+- **Estagiários e aprendizes:**
+  - **Não são contados** no headcount principal, mas aparecem em métricas específicas.
 
 ---
-## **6. Regras de Negócio Aplicadas**
-O script aplica **regras específicas** para garantir que os dados reflitam a realidade do negócio.
 
-### **6.1. Exemplos de Regras**
-| **Regra** | **Descrição** |
-|-----------|---------------|
-| **Funcionários admitidos e demitidos no mesmo mês** | São marcados como `C/Dem no mês` para não distorcer métricas de turnover. |
-| **Exclusão de registros inválidos** | Remove matrículas vazias (`''`), funcionários com tipo `U` (Outros) ou `S` (Pensionista). |
-| **Cálculo de faixa salarial** | Compara o salário do funcionário com a referência do cargo (ex: `90% do salário padrão`). |
-| **Classificação por idade** | Agrupa funcionários em `Até 30 anos`, `31 a 50 anos` ou `Acima de 50 anos`. |
-| **Identificação de gestores** | Define quem é o gestor direto de cada funcionário, buscando na hierarquia. |
+### **2.2 Turnover (Rotatividade)**
+**Definição:**
+Porcentagem de funcionários que **saíram da empresa** em um período, considerando apenas demissões **voluntárias ou involuntárias** relevantes.
 
----
-## **7. Salvamento dos Dados Processados (Silver)**
-Após o processamento, as tabelas são **salvas em arquivos `.QVD`** na pasta **Silver**, prontas para serem usadas em relatórios ou painéis.
+#### **Critérios de Inclusão:**
+- Demissões com **tipos específicos**:
+  - Voluntárias: `1` (Aposentadoria), `4` (Voluntária), `V` (Voluntária).
+  - Involuntárias: `2`, `8`, `N`, `T`.
+- Funcionários com **tempo mínimo de 1 dia** na empresa.
+- **Exclui transferências sem ônus** (`Tipo de Demissão = 5`).
 
-### **7.1. Tabelas Salvas**
-| **Tabela** | **Arquivo Gerado** | **Uso** |
-|------------|--------------------|---------|
-| `sv_centro_de_custo_d` | `sv_centro_de_custo_d.QVD` | Análise por departamento. |
-| `sv_funcao_d` | `sv_funcao_d.QVD` | Catálogo de cargos. |
-| `sv_headcount_f` | `sv_headcount_f.QVD` | Base principal de funcionários. |
-| `sv_termination_f` | `sv_termination_f.QVD` | Registros de demissões. |
-| `sv_posicoes_f` | `sv_posicoes_f.QVD` | Vagas abertas. |
+#### **Critérios de Exclusão:**
+- **Tipos de demissão não considerados:**
+  - Falecimento (`8` – excluído por regra de negócio).
+  - Aposentadorias por invalidez (`A`, `D`).
+  - Transferências (`5`).
+- **Tipos de funcionários excluídos:**
+  - Estagiários (`T`).
+  - Aprendizes (`Z`).
+  - Conselheiros (`C`).
+  - Pensionistas (`S`).
 
----
-## **8. Limpeza Final**
-Ao final, o script **exclui as tabelas temporárias** para liberar memória e evitar conflitos em execuções futuras.
-
----
-## **9. Resumo do Fluxo de Dados**
-1. **Leitura**: Dados brutos são carregados da camada **Bronze**.
-2. **Transformação**: Dados são limpos, enriquecidos e calculados.
-3. **Salvamento**: Tabelas processadas são salvas na camada **Silver**.
-4. **Uso**: Os dados estão prontos para análise em relatórios ou dashboards.
+#### **Casos Especiais:**
+- **Demissões no mesmo mês da admissão:**
+  - Não são contadas no turnover (são tratadas como **short tenure**).
+- **Readmitidos:**
+  - Se demitidos e readmitidos, a demissão **não conta** para turnover.
 
 ---
-## **10. Exemplos Práticos**
-### **Exemplo 1: Cálculo de Tempo na Empresa**
-- **Dados brutos**:
-  - `Data Admissão`: `01.01.2020`
-  - `Data Atual`: `15.05.2024`
-- **Cálculo do script**:
-  - `(15.05.2024 - 01.01.2020) = 4 anos e 4 meses` → `1.584 dias`.
-  - Classificado como **Não Novo Contratado** (mais de 1 ano).
 
-### **Exemplo 2: Classificação de Demissão**
-- **Dados brutos**:
-  - `Tipo de Demissão`: `2` (Código para demissão por desempenho).
-- **Aplicação do mapeamento**:
-  - `2` → `Involuntário` (segundo a tabela `CLASSIFICAÇÃO_MAP`).
+### **2.3 Admissões (New Hires)**
+**Definição:**
+Funcionários **contratados recentemente**, segmentados por período (ex.: admitidos no mês, nos últimos 3 meses).
 
-### **Exemplo 3: Identificação de Gestor**
-- **Dados brutos**:
-  - Hierarquia do funcionário `A`:
-    - Nível 1: `João` (código `1001`)
-    - Nível 2: `Maria` (código `1002`)
-- **Resultado**:
-  - Gestor direto de `A` = `Maria` (primeiro nível acima na hierarquia).
+#### **Critérios de Inclusão:**
+- Funcionários com **data de admissão ≤ data atual**.
+- **Flags aplicadas:**
+  - `new_hire_flag = TRUE`: Admitidos há **menos de 1 ano**.
+  - `admitido_flag = TRUE`: Admitidos **no mês de referência**.
+  - `admitido_flag_3meses = TRUE`: Admitidos **nos últimos 3 meses**.
+
+#### **Critérios de Exclusão:**
+- Admissões **futuras** (data de admissão > hoje).
+- **Tipos de contrato excluídos:**
+  - Estagiários (`T`).
+  - Aprendizes (`Z`).
 
 ---
-## **11. Conclusão**
-Este script é uma **ferramenta essencial** para preparar dados de RH, permitindo que a empresa:
-- **Monitore o quadro de funcionários** (admissões, demissões, transferências).
-- **Analise métricas-chave** (turnover, tempo na empresa, faixa salarial).
-- **Tome decisões baseadas em dados** (ex: contratações, treinamentos, políticas de retenção).
 
-Ao seguir uma estrutura organizada (Bronze → Silver → Gold), garante-se que os dados sejam **confiáveis, consistentes e úteis** para a gestão.
+### **2.4 Vagas Abertas (Posições em Aberto)**
+**Definição:**
+Vagas **disponíveis para contratação**, incluindo substituições e novas posições.
+
+#### **Critérios de Inclusão:**
+- Vagas com **status** `Em Andamento` ou `Em Admissão`.
+- Vagas **não preenchidas** (sem responsável definido como `NAO DEFINIDO`).
+- **Exclui vagas para aprendizes/estagiários** (palavras-chave no nome da posição).
+
+#### **Critérios de Exclusão:**
+- Vagas **arquivadas ou canceladas**.
+- Vagas para **aprendizes/estagiários** (ex.: `*APRENDIZ*`, `*ESTAG*`).
+
+#### **Casos Especiais:**
+- **Substituições:**
+  - Marcadas com `rp_classificacao = "Substituição"`.
+- **Vagas por tipo de RP:**
+  - Classificadas como `Temporário`, `Efetivo`, etc.
+
+---
+
+### **2.5 Taxa de Ocupação**
+**Definição:**
+Relação entre **posições ocupadas** e **posições totais** (ocupadas + vagas).
+
+#### **Critérios de Inclusão:**
+- **Posições ocupadas:** Headcount ativo.
+- **Posições totais:** Headcount + vagas abertas (excluindo aprendizes/estagiários).
+
+#### **Critérios de Exclusão:**
+- Vagas **sem centro de custo válido**.
+- Posições **excluídas manualmente** (ex.: conselheiros).
+
+---
+
+### **2.6 Demissões (Terminations)**
+**Definição:**
+Funcionários que **saíram da empresa**, classificados por tipo (voluntária/involuntária).
+
+#### **Critérios de Inclusão:**
+- Demissões com **data válida** (≤ hoje).
+- **Classificação por tipo:**
+  - Voluntária: `1`, `4`, `V`.
+  - Involuntária: `2`, `8`, `N`, `T`.
+
+#### **Critérios de Exclusão:**
+- **Tipos de demissão não contabilizados:**
+  - Transferências (`5`).
+  - Falecimentos (`8`).
+  - Aposentadorias (`A`, `D`, `E`, etc.).
+- **Funcionários excluídos:**
+  - Estagiários (`T`).
+  - Aprendizes (`Z`).
+
+#### **Casos Especiais:**
+- **Demissões no mesmo mês da admissão:**
+  - Tratadas como **short tenure** (não entram no turnover).
+- **Readmitidos:**
+  - Se demitidos e readmitidos, a demissão **não conta** para métricas de rotatividade.
+
+---
+
+### **2.7 Faixas Salariais (Range Salarial)**
+**Definição:**
+Classificação dos salários em **faixas percentuais** em relação à média do cargo.
+
+#### **Critérios de Inclusão:**
+- Salários **normalizados** (divididos por 100 para comparação).
+- **Faixas definidas:**
+  - `Menor 80%`.
+  - `Entre 80% e 90%`.
+  - `Entre 100% e 110%`.
+  - `Acima de 120%`.
+
+#### **Critérios de Exclusão:**
+- Salários **nulos ou inválidos**.
+- Cargos **sem tabela salarial definida**.
+
+---
+
+### **2.8 Diversidade (Gênero, Idade, PCD)**
+**Definição:**
+Distribuição de funcionários por **gênero**, **faixa etária** e **pessoas com deficiência (PCD)**.
+
+#### **Critérios de Inclusão:**
+- **Gênero:** `Masculino`, `Feminino`, `Não informado`.
+- **Faixa etária:**
+  - `Até 30 anos`.
+  - `De 31 a 50 anos`.
+  - `Acima de 50 anos`.
+- **PCD:** Funcionários com `cota_pcd = "Sim"`.
+
+#### **Critérios de Exclusão:**
+- Dados **não preenchidos** (ex.: raça não informada).
+- Funcionários **excluídos do headcount**.
+
+---
+
+## **3. Condicionais e Classificações**
+### **Segmentação dos Dados**
+Os dados são agrupados por:
+
+| **Critério**          | **Exemplos de Classificação**                          |
+|-----------------------|-------------------------------------------------------|
+| **Período**           | Mês atual, último trimestre, ano fiscal.             |
+| **Faixa etária**      | Até 30 anos, 31-50 anos, acima de 50 anos.           |
+| **Tipo de contrato**  | CLT, estagiário, aprendiz, temporário.               |
+| **Status**            | Ativo, afastado, demitido, aviso prévio.            |
+| **Localização**       | Filial, centro de custo, diretoria (Corporativo, Industrial, Florestal). |
+| **Salário**           | Faixas percentuais (80%-90%, 100%-110%, etc.).        |
+| **Turnover**          | Voluntário vs. involuntário.                          |
+| **Diversidade**       | Gênero, raça, PCD.                                    |
+
+---
+
+## **4. Campos e Flags de Apoio**
+### **Campos Utilizados para Regras de Negócio**
+
+| **Campo**                     | **Descrição**                                                                 |
+|-------------------------------|-----------------------------------------------------------------------------|
+| `Situação`                    | Status do funcionário (`A`=Ativo, `D`=Demitido, `F`=Férias, etc.).         |
+| `Tipo Funcionário`            | Tipo de contrato (`N`=Normal, `T`=Estagiário, `Z`=Aprendiz).               |
+| `Tipo de Demissão`            | Classificação da saída (`1`=Voluntária, `2`=Involuntária, `5`=Transferência). |
+| `Data Admissão`               | Data de entrada na empresa.                                                 |
+| `Data Demissão`               | Data de saída (se aplicável).                                               |
+| `Centro de Custo`             | Código do centro de custo (exclui códigos inválidos ou `<= 99`).           |
+| `Coligada`                    | Empresa do grupo (ex.: `1`=Eldorado, `30`=Offshore).                       |
+| `new_hire_flag`               | `TRUE` se admitido há menos de 1 ano.                                        |
+| `turnover_flag`               | `TRUE` se a demissão deve ser contabilizada no turnover.                    |
+| `readimitido`                 | `Sim` se o funcionário foi readmitido.                                      |
+| `operacional_flag`            | `Operacional` ou `Não Operacional` (baseado no grupo de cargo).              |
+| `lider_flag`                  | `Líder` ou `Não Líder` (baseado em carreira ou grupo de relatório).         |
+| `cota_pcd`                    | `Sim` se o funcionário é pessoa com deficiência.                           |
+| `gestor_direto_nome`          | Nome do gestor imediato (extraído da hierarquia).                           |
+
+---
+
+## **5. O que é Incluído e o que é Excluído no Dashboard**
+### **Resumo Geral**
+
+| **Métrica**            | **Incluído**                                                                 | **Excluído**                                                                 |
+|------------------------|-----------------------------------------------------------------------------|------------------------------------------------------------------------------|
+| **Headcount**          | Ativos, afastados temporários, offshore, admitidos/demitidos no mesmo mês. | Demitidos (exceto short tenure), conselheiros, aprendizes, matrículas apagadas. |
+| **Turnover**           | Demissões voluntárias/involuntárias (exceto transferências).               | Falecimentos, aposentadorias, estagiários, aprendizes.                      |
+| **Admissões**          | Novos contratados (há menos de 1 ano).                                      | Admissões futuras, estagiários, aprendizes.                                 |
+| **Vagas Abertas**      | Posições em andamento/admissão (exceto aprendizes).                        | Vagas canceladas ou para aprendizes.                                        |
+| **Taxa de Ocupação**   | Posições ocupadas + vagas abertas (exceto aprendizes).                     | Vagas sem centro de custo válido.                                           |
+| **Demissões**          | Saídas classificadas como voluntárias/involuntárias.                       | Transferências, falecimentos, aposentadorias.                              |
+| **Faixas Salariais**   | Salários normalizados em faixas percentuais.                               | Salários nulos ou sem referência.                                           |
+| **Diversidade**        | Funcionários com gênero, idade e PCD registrados.                         | Dados não preenchidos.                                                      |
+
+---
+
+## **6. Glossário**
+| **Termo**               | **Definição**                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|
+| **Headcount**           | Total de funcionários ativos ou afastados temporariamente.                 |
+| **Turnover**            | Taxa de rotatividade (saída de funcionários).                              |
+| **New Hire**            | Funcionário admitido há menos de 1 ano.                                     |
+| **Short Tenure**        | Admitido e demitido no mesmo mês.                                          |
+| **Offshore**            | Funcionários de coligadas internacionais (ex.: Áustria, EUA).              |
+| **PCD**                | Pessoa com Deficiência.                                                     |
+| **Coligada**            | Empresa do grupo (ex.: Eldorado, Florestal, Offshore).                       |
+| **Centro de Custo**    | Unidade organizacional que agrega despesas (ex.: Diretoria Industrial).     |
+| **Readmitido**          | Funcionário que saiu e foi recontratado.                                   |
+| **Flag**               | Indicador booleano (`TRUE`/`FALSE`) para classificar dados.                 |
+| **RP (Requisition)**   | Vaga aberta para contratação.                                               |
+| **GS (Grade Salarial)**| Nível salarial do cargo.                                                     |

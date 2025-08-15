@@ -1,167 +1,291 @@
 # Documentação Técnica
 
 **Arquivo:** `People Analytics Model.qvs`  
-**Última atualização:** 15/08/2025 11:56:24
+**Última atualização:** 15/08/2025 13:34:32
 
-# **Documentação do Script QVS – Estrutura de Dados para Análise de Recursos Humanos e Operações**
-
-Este documento explica, de forma clara e organizada, o funcionamento de um script utilizado para preparar e relacionar dados em um sistema de análise de informações. O objetivo principal é integrar dados de **Recursos Humanos (RH)** e **operacionais** (como produção, vendas e custos) para que possam ser visualizados e analisados de maneira consistente.
-
-O script não altera os dados originais, mas os organiza em uma estrutura que facilita a criação de relatórios, painéis e tomadas de decisão baseadas em informações confiáveis.
+# **Documentação de Regras de Negócio – Dashboard de Recursos Humanos**
+*(Aplicável a métricas de Headcount, Turnover, Vagas, Custos e Eventos)*
 
 ---
 
-## **1. Configurações Iniciais**
-Antes de carregar os dados, o script define padrões de formatação para garantir que números, datas, moedas e textos sejam exibidos de maneira uniforme e adequada ao português do Brasil.
+## **1. Visão Geral**
+### **Objetivo do Documento**
+Este guia explica **o que é contado** e **o que não é contado** em cada métrica do dashboard, além de regras para segmentação e casos especiais.
+**Todas as métricas seguem critérios específicos** para garantir consistência nos dados.
 
-### **1.1. Formatação de Números e Moedas**
-- **Separador de milhar:** `.` (ponto) → Exemplo: `1.000` (mil).
-- **Separador decimal:** `,` (vírgula) → Exemplo: `R$ 1.000,50`.
-- **Formato de moeda:** `R$` (Real brasileiro), com duas casas decimais e sinal negativo para valores abaixo de zero.
-  - Exemplo: `R$ 1.234,56` (positivo) ou `-R$ 1.234,56` (negativo).
-
-### **1.2. Formatação de Data e Hora**
-- **Data:** `DD.MM.AAAA` → Exemplo: `15.05.2024` (15 de maio de 2024).
-- **Hora:** `hh:mm:ss` → Exemplo: `14:30:00`.
-- **Data + Hora:** `DD.MM.AAAA hh:mm:ss` → Exemplo: `15.05.2024 14:30:00`.
-
-### **1.3. Configurações de Calendário**
-- **Primeiro dia da semana:** Domingo (definido como `6`).
-- **Primeiro mês do ano:** Janeiro (definido como `1`).
-- **Idioma:** Português do Brasil (`pt-BR`), para nomes de meses e dias da semana.
-  - Exemplo: `janeiro`, `fevereiro`, `segunda-feira`, `terça-feira`, etc.
-
-### **1.4. Caminhos dos Arquivos (Pastas de Dados)**
-O script define onde os dados estão armazenados, organizados em **camadas** (como pastas em um computador):
-- **Bronze:** Dados brutos (originais, sem tratamento).
-- **Silver:** Dados limpos e padronizados.
-- **Gold:** Dados prontos para análise (os utilizados neste script).
-- **Manual Source:** Dados inseridos manualmente (como planilhas).
-- **Fontes Externas:** Dados de fora da empresa (como pesquisas ou bases públicas).
-
----
-## **2. Carregamento dos Dados**
-O script carrega dois tipos de informações:
-1. **Fatos (Tabelas de Eventos):** Registros de ocorrências, como admissões, demissões, produção, vendas, etc.
-2. **Dimensões (Tabelas de Referência):** Informações descritivas, como nomes de funcionários, cargos, centros de custo, etc.
-
-### **2.1. Tabelas de Fatos (O Que Aconteceu?)**
-São carregadas as seguintes tabelas com dados operacionais e de RH:
-
-| **Tabela**                     | **Descrição**                                                                 | **Exemplo de Uso**                          |
-|--------------------------------|-------------------------------------------------------------------------------|---------------------------------------------|
-| **gd_headcount_f**             | Quantidade de funcionários ativos em um determinado dia.                     | "Em janeiro de 2024, havia 500 funcionários na fábrica X." |
-| **gd_termination_f**           | Registros de demissões (quem saiu, quando e por quê).                        | "10 funcionários pediram demissão em março." |
-| **gd_excel_orcamento_historico_f** | Orçamento planejado de funcionários (metas de contratação).              | "O plano era ter 550 funcionários em 2024." |
-| **gd_posicoes_f**              | Posições (vagas) disponíveis na empresa, mesmo que não estejam ocupadas.      | "Existem 20 vagas abertas para o cargo Y."  |
-| **gd_eventos_f**               | Eventos relacionados a funcionários (treinamentos, promoções, etc.).         | "50 funcionários fizeram treinamento em segurança em abril." |
-| **gd_custo_origem_opex_f**     | Custos operacionais (despesas da empresa, como salários, energia, etc.).     | "O custo com salários em fevereiro foi R$ 200.000,00." |
-| **gd_producao_celulose_f**     | Produção de celulose (quantidade produzida por dia/mês).                     | "Em janeiro, foram produzidas 1.000 toneladas." |
-| **gd_vendas_celulose_f**       | Vendas de celulose (quantidade vendida e faturamento).                        | "Vendemos 800 toneladas em fevereiro."      |
-| **gd_receita_liquida_f**       | Receita líquida da empresa (faturamento após descontos).                      | "A receita em março foi R$ 5.000.000,00."     |
-
-#### **Como os Dados São Identificados?**
-Cada tabela de fatos recebe um **`link_key`**, um código único gerado automaticamente que serve como uma "etiqueta" para relacionar as informações. Esse código é criado a partir de dados como:
-- Data (`date_key`),
-- Funcionário (`pessoa`),
-- Cargo (`funcao_sk`),
-- Centro de custo (`centro_de_custo_sk`), entre outros.
-
-**Exemplo:**
-Se um funcionário foi admitido em `01.01.2024` no cargo `Analista` no centro de custo `Fábrica A`, o sistema gera um `link_key` único para esse registro. Isso permite vincular esse evento a outras informações, como seu salário ou treinamentos.
+### **Como Identificar o que Deve ser Contado?**
+- Cada métrica tem **critérios de inclusão** (o que entra no cálculo) e **critérios de exclusão** (o que não entra).
+- **Casos especiais** são exceções às regras gerais (ex.: funcionários em licença, contratos temporários).
+- **Segmentações** (por período, região, tipo de funcionário etc.) ajudam a filtrar os dados.
 
 ---
 
-### **2.2. Tabelas de Dimensões (Quem? O Quê? Onde?)**
-São informações descritivas que ajudam a entender **quem são os funcionários**, **quais são os cargos**, **onde trabalham**, etc.
-
-| **Tabela**                 | **Descrição**                                                                 | **Exemplo**                                |
-|----------------------------|-------------------------------------------------------------------------------|--------------------------------------------|
-| **gd_calendario_d**        | Datas e informações de calendário (feriados, dias úteis, etc.).             | "01.01.2024 foi feriado (Ano Novo)."       |
-| **gd_hierarquia_d**        | Estrutura hierárquica da empresa (gerentes, diretores, etc.).               | "João é gerente da área de Produção."      |
-| **gd_funcao_d**            | Cargos existentes na empresa (Analista, Operador, etc.).                     | "Cargo: Operador de Máquinas."             |
-| **gd_eldorado_entity_d**   | Unidades da empresa (fábricas, escritórios, filiais).                        | "Fábrica de Três Lagoas - MS."              |
-| **gd_employee_d**          | Dados dos funcionários (nome, matrícula, etc.).                              | "Maria Silva, Matrícula 12345."            |
-| **gd_situacao_d**          | Situação do funcionário (ativo, afastado, etc.).                              | "Situação: Ativo."                         |
-| **gd_tipo_funcionario_d**  | Tipo de contratação (CLT, temporário, estagiário, etc.).                      | "Tipo: CLT."                               |
-| **gd_centro_de_custo_d**   | Áreas ou departamentos que geram custos (Produção, RH, etc.).                 | "Centro de Custo: Manutenção."             |
-| **gd_conta_contabil_d**    | Contas contábeis (salários, energia, matérias-primas, etc.).                  | "Conta: Salários e Encargos."              |
-| **gd_evento_d**            | Tipos de eventos (treinamento, promoção, advertência, etc.).                   | "Evento: Treinamento de Segurança."        |
+## **2. Regras de Negócio por Indicador/Métrica**
 
 ---
-## **3. Relacionamento dos Dados (Tabela "Link")**
-Após carregar todas as tabelas, o script cria uma **tabela central chamada `Link`**, que funciona como um "índice" para conectar todas as informações.
 
-### **Como Funciona?**
-1. **Cada tabela de fatos contribui com seus registros** para a tabela `Link`, mas apenas com os campos que são relevantes.
-   - Exemplo: A tabela de **demissões (`gd_termination_f`)** não tem informações sobre produção, então esses campos ficam vazios (`''`).
-2. **O `link_key` é a chave que une tudo**:
-   - Se um registro de **produção** e um registro de **custos** têm o mesmo `link_key`, significa que estão relacionados (por exemplo, custos da produção daquele dia).
-3. **Campos não utilizados são removidos** ao final para otimizar o espaço.
+### **2.1. Headcount (Número de Funcionários Ativos)**
+#### **Definição**
+Quantidade de **pessoas ativas na empresa** em um determinado período, considerando sua situação contratual.
 
-### **Exemplo Prático:**
-| **link_key** (código único) | **date_key** (data) | **pessoa** (funcionário) | **funcao_sk** (cargo) | **centro_de_custo_sk** (área) | **conta_contabil_sk** (despesa) |
-|----------------------------|--------------------|--------------------------|-----------------------|--------------------------------|----------------------------------|
-| ABC123                      | 01.01.2024         | João Silva              | Operador              | Produção                      | Salários                        |
-| DEF456                      | 01.01.2024         | -                        | -                     | Produção                      | Energia Elétrica                |
+#### **Critérios de Inclusão**
+✅ **São contados como Headcount:**
+- Funcionários com **situação ativa** (ex.: trabalhando normalmente, em home office, em treinamento).
+- Funcionários **em licença médica ou férias** (mesmo afastados temporariamente).
+- **Contratos temporários ou terceirizados** que estejam **vinculados à folha de pagamento** da empresa.
+- Funcionários **em período de experiência** (ainda não efetivados).
+- Pessoas **em jornada reduzida** (ex.: part-time).
 
-- **Interpretação:**
-  - No dia **01.01.2024**, o funcionário **João Silva** (Operador) gerou um custo de **salário** na área de **Produção**.
-  - No mesmo dia, houve um gasto com **energia elétrica** na **Produção**, mas não está vinculado a um funcionário específico.
+#### **Critérios de Exclusão**
+❌ **Não são contados como Headcount:**
+- Funcionários **demitidos ou com contrato encerrado** (mesmo que a demissão tenha ocorrido no mês atual).
+- **Aposentados** ou em **licença não remunerada** (ex.: licença sem vencimento).
+- **Estagiários** (a menos que estejam registrados como funcionários).
+- Pessoas **em processo de admissão** (ainda não contratadas oficialmente).
+- **Funcionários de empresas parceiras** (terceirizados não vinculados à folha da empresa).
 
----
-## **4. Limpeza Final**
-Ao final, o script **remove campos duplicados ou desnecessários** das tabelas originais para:
-- Evitar confusão (por exemplo, não precisamos do nome do funcionário em todas as tabelas, apenas na tabela de dimensão).
-- Otimizar o desempenho (menos dados repetidos = sistema mais rápido).
-
----
-## **5. Resumo: Para Que Serve Esse Script?**
-Este script **prepara os dados** para que possam ser usados em:
-- **Relatórios de RH:** Quantidade de funcionários, rotatividade (quem entra/sai), custos com pessoal.
-- **Análise de produção:** Relação entre funcionários, produção e vendas.
-- **Controle de custos:** Quanto se gasta em cada área (salários, energia, matérias-primas).
-- **Tomada de decisão:** Identificar padrões, como:
-  - "Quando aumentamos a produção, os custos com horas extras sobem?"
-  - "Quais áreas têm maior rotatividade de funcionários?"
-
-### **Analogia Simples:**
-Imagine que você tem:
-- **Uma lista de compras do mercado** (fatos: o que foi comprado, quando e por quanto).
-- **Uma lista de produtos** (dimensões: o que é "arroz", "feijão", etc.).
-- **Uma lista de lojas** (dimensões: onde você comprou).
-
-Esse script **junta tudo em uma planilha única**, onde você pode ver:
-- "Em janeiro, comprei 2kg de arroz na Loja A por R$ 10,00."
-- "O feijão ficou 20% mais caro na Loja B em fevereiro."
-
-Assim, você consegue **analisar seus gastos** de forma organizada.
+#### **Casos Especiais**
+⚠ **Tratamentos diferenciados:**
+- **Licença maternidade/paternidade**: Contados como ativos.
+- **Afastamento por acidente de trabalho**: Contados como ativos (até o término do benefício).
+- **Funcionários em transferência entre unidades**: Contados na unidade de **destino** a partir da data oficial da mudança.
+- **Contratos suspensos** (ex.: por investigação interna): **Não contados** até a regularização.
 
 ---
-## **6. Fluxo Simplificado do Script**
 
-1. **Configurações:** Define como números, datas e moedas serão exibidos.
-2. **Localiza os dados:** Indica onde estão os arquivos (pastas Bronze, Silver, Gold, etc.).
-3. **Carrega tabelas de fatos:** Dados de eventos (admissões, produção, vendas, etc.).
-   - Cada tabela recebe um `link_key` para relacionamento.
-4. **Carrega tabelas de dimensões:** Informações descritivas (funcionários, cargos, centros de custo, etc.).
-5. **Cria a tabela `Link`:** Une todos os dados em um só lugar, usando o `link_key`.
-6. **Remove dados repetidos:** Otimiza o espaço.
-7. **Finaliza:** O script está pronto para ser usado em relatórios ou painéis.
+### **2.2. Turnover (Rotatividade de Funcionários)**
+#### **Definição**
+Porcentagem de **funcionários que saíram da empresa** em um período, em relação ao total de funcionários no início do período.
+
+#### **Critérios de Inclusão**
+✅ **São contados no Turnover:**
+- **Demissões voluntárias** (pedido do funcionário).
+- **Demissões por justa causa** (iniciativa da empresa).
+- **Término de contrato temporário** (não renovado).
+- **Aposentadorias** (saída definitiva).
+- **Mortes** (falecimento do funcionário).
+
+#### **Critérios de Exclusão**
+❌ **Não são contados no Turnover:**
+- **Transferências internas** (funcionário que muda de área/unidade, mas permanece na empresa).
+- **Licenças temporárias** (ex.: licença médica, férias).
+- **Funcionários em processo de desligamento** (ainda não oficializado).
+- **Terceirizados** (não fazem parte do quadro próprio).
+
+#### **Casos Especiais**
+⚠ **Tratamentos diferenciados:**
+- **Demissões em massa** (ex.: fechamento de uma unidade): Contadas individualmente, mas podem ser analisadas em relatórios separados.
+- **Funcionários que saem e voltam no mesmo período**: Contados **apenas na saída** (não na readmissão).
+- **Saídas por acordo mútuo**: Contadas como demissão voluntária.
 
 ---
-## **7. Exemplos de Perguntas que Podem Ser Respondidas com Esses Dados**
-| **Pergunta**                                      | **Tabelas Utilizadas**                          | **Como o `link_key` Ajuda?**                     |
-|---------------------------------------------------|------------------------------------------------|-----------------------------------------------|
-| Quantos funcionários foram admitidos em 2024?     | `gd_headcount_f` + `gd_employee_d`             | Filtra por data e conta os registros únicos.   |
-| Qual o custo médio por funcionário na área X?     | `gd_custo_origem_opex_f` + `gd_centro_de_custo_d` | Relaciona custos com o centro de custo.       |
-| A produção aumentou depois de um treinamento?    | `gd_producao_celulose_f` + `gd_eventos_f`      | Verifica se há correlação entre eventos e produção. |
-| Quais cargos têm maior rotatividade?              | `gd_termination_f` + `gd_funcao_d`             | Agrupa demissões por cargo.                   |
+
+### **2.3. Vagas Abertas (Posições em Aberto)**
+#### **Definição**
+Número de **posições disponíveis para contratação**, independentemente de estarem em processo seletivo ou não.
+
+#### **Critérios de Inclusão**
+✅ **São contadas como Vagas Abertas:**
+- Vagas **aprovadas no orçamento** e ainda não preenchidas.
+- Vagas **em processo seletivo** (com candidaturas em andamento).
+- Vagas **temporariamente suspensas** (ex.: congelamento por crise, mas ainda não canceladas).
+- **Reposições** (vagas de funcionários que saíram).
+
+#### **Critérios de Exclusão**
+❌ **Não são contadas como Vagas Abertas:**
+- Vagas **já preenchidas**, mas com contratação ainda não oficializada.
+- Vagas **canceladas** (não serão mais ocupadas).
+- **Posições futuras** (previstas no planejamento, mas ainda não aprovadas).
+- Vagas **para estagiários ou terceirizados**.
+
+#### **Casos Especiais**
+⚠ **Tratamentos diferenciados:**
+- **Vagas sazonais** (ex.: contratações para período de safra): Contadas apenas no período ativo.
+- **Vagas compartilhadas** (ex.: função dividida entre duas pessoas): Contada como **uma única vaga**.
+- **Vagas em realocação interna**: Não contadas (já ocupadas por funcionários da empresa).
 
 ---
-## **8. Considerações Finais**
-- **Objetivo:** Organizar dados de forma que possam ser **analisados juntos**, mesmo vindos de fontes diferentes.
-- **Benefício:** Permite criar **relatórios confiáveis** e **tomar decisões baseadas em dados**.
-- **Não altera os dados originais:** Apenas os prepara para uso em ferramentas de análise (como o Qlik Sense).
 
-Este script é como um **"organizador de informações"**, garantindo que tudo esteja no lugar certo para que gestores e analistas possam entender o que acontece na empresa.
+### **2.4. Taxa de Ocupação (Fill Rate)**
+#### **Definição**
+Porcentagem de **vagas preenchidas** em relação ao total de vagas **orçamentadas** para um período.
+
+#### **Critérios de Inclusão**
+✅ **São contados no cálculo:**
+- Vagas **orçamentadas** (previstas no planejamento anual).
+- Vagas **efetivamente ocupadas** (com funcionário ativo).
+- Vagas **em processo de contratação** (com candidato selecionado, mas ainda não admitido).
+
+#### **Critérios de Exclusão**
+❌ **Não são contados no cálculo:**
+- Vagas **não orçamentadas** (ex.: contratações emergenciais).
+- Vagas **canceladas** após aprovação.
+- **Posições temporárias** (ex.: substituições por licença).
+- Vagas **para terceirizados**.
+
+#### **Casos Especiais**
+⚠ **Tratamentos diferenciados:**
+- **Vagas com contratação atrasada**: Contadas como **não preenchidas** até a admissão oficial.
+- **Vagas em realocação interna**: Contadas como **preenchidas** (mesmo que o funcionário ainda não tenha assumido).
+- **Orçamento revisado**: A taxa é recalculada com base no **número atualizado de vagas**.
+
+---
+
+### **2.5. Custo com Pessoal (OPEX de RH)**
+#### **Definição**
+Total de **despesas com salários, benefícios e encargos** relacionados à mão de obra em um período.
+
+#### **Critérios de Inclusão**
+✅ **São contados nos custos:**
+- **Salários e encargos** (INSS, FGTS, 13º salário, férias).
+- **Benefícios** (vale-refeição, vale-transporte, plano de saúde, previdência privada).
+- **Bonificações e comissões**.
+- **Encargos trabalhistas** (multas rescisórias, aviso prévio).
+- **Custos com terceirizados** (se pagos pela empresa).
+
+#### **Critérios de Exclusão**
+❌ **Não são contados nos custos:**
+- **Investimentos em treinamento** (cursos, certificações).
+- **Despesas com recrutamento** (anúncios, headhunters).
+- **Benefícios não monetários** (ex.: ginástica laboral, programas de bem-estar).
+- **Custos com estagiários** (bolsas-auxílio).
+
+#### **Casos Especiais**
+⚠ **Tratamentos diferenciados:**
+- **Férias provisionadas**: Contabilizadas no mês de **competência** (não no pagamento).
+- **13º salário**: Rateado mensalmente (1/12 por mês).
+- **Multas por demissão sem justa causa**: Contadas no mês do desligamento.
+- **Benefícios flexíveis** (ex.: vale-cultura): Contados apenas se **utilizados pelo funcionário**.
+
+---
+
+### **2.6. Eventos de RH (Admissões, Promoções, Transferências)**
+#### **Definição**
+Registro de **movimentações de funcionários** (entradas, saídas, mudanças de cargo, etc.) em um período.
+
+#### **Critérios de Inclusão**
+✅ **São contados como eventos:**
+- **Admissões** (novas contratações).
+- **Demissões** (saídas voluntárias ou involuntárias).
+- **Promoções** (mudança de cargo com aumento de responsabilidade).
+- **Transferências** (mudança de área/unidade).
+- **Reajustes salariais** (aumentos ou reduções).
+- **Licenças** (médicas, maternidade, férias).
+
+#### **Critérios de Exclusão**
+❌ **Não são contados como eventos:**
+- **Atualizações cadastrais** (ex.: mudança de endereço, estado civil).
+- **Treinamentos internos** (sem mudança de cargo ou salário).
+- **Afastamentos não oficiais** (ex.: faltas não justificadas).
+- **Movimentações de terceirizados**.
+
+#### **Casos Especiais**
+⚠ **Tratamentos diferenciados:**
+- **Recontratações**: Contadas como **nova admissão** (não como readmissão).
+- **Transferências temporárias**: Contadas apenas se durarem **mais de 3 meses**.
+- **Promoções com mudança de salário**: Registradas como **promoção + reajuste**.
+
+---
+
+## **3. Condicionais e Classificações**
+Como os dados são segmentados no dashboard:
+
+| **Segmentação**       | **Exemplos de Filtros**                                                                 |
+|----------------------|----------------------------------------------------------------------------------------|
+| **Período**          | Mês atual, ano fiscal, trimestre, data específica (ex.: "Jan/2024").                  |
+| **Tipo de Funcionário** | Efetivo, temporário, terceirizado, estagiário.                                        |
+| **Situação**         | Ativo, inativo, em licença, em processo de demissão.                                  |
+| **Faixa Etária**     | "Até 30 anos", "31 a 50 anos", "Acima de 50 anos".                                    |
+| **Região/Unidade**  | Matriz, filiais, unidades operacionais (ex.: "Unidade São Paulo").                     |
+| **Jornada**          | Integral (40h), parcial (20h), flexível.                                             |
+| **Tempo de Empresa**| "Até 1 ano", "1 a 5 anos", "Mais de 10 anos".                                         |
+| **Centro de Custo** | Áreas como "Produção", "Administrativo", "Vendas".                                   |
+| **Evento**           | Admissão, demissão, promoção, transferência.                                         |
+
+---
+
+## **4. Campos e Flags de Apoio**
+Campos usados para aplicar as regras (sem detalhes técnicos):
+
+| **Campo/Flag**            | **Significado**                                                                          |
+|--------------------------|----------------------------------------------------------------------------------------|
+| **situacao_sk**          | Status do funcionário (ativo, inativo, licença, etc.).                                 |
+| **tipo_funcionario_sk**  | Classificação do contrato (efetivo, temporário, terceirizado).                        |
+| **jornada_sk**           | Tipo de jornada (integral, parcial, flexível).                                        |
+| **idade**                | Faixa etária do funcionário.                                                            |
+| **tempo_empresa_key**    | Tempo de casa (em meses/anos).                                                          |
+| **evento_sk**            | Tipo de evento (admissão, demissão, promoção).                                         |
+| **centro_de_custo_sk**   | Área/departamento do funcionário.                                                      |
+| **status_sk**            | Estado atual (ex.: "em processo de demissão", "em treinamento").                       |
+| **pessoa_hc**            | Identificador único para Headcount.                                                    |
+| **pessoa_to**            | Identificador único para Turnover.                                                     |
+
+---
+
+## **5. O que é Incluído e o que é Excluído no Dashboard**
+
+### **5.1. Headcount**
+| **Inclusão**                          | **Exclusão**                          |
+|---------------------------------------|---------------------------------------|
+| Funcionários ativos.                  | Demitidos ou com contrato encerrado. |
+| Em licença médica/férias.             | Aposentados.                          |
+| Contratos temporários na folha.       | Estagiários (não registrados).        |
+| Em período de experiência.            | Em processo de admissão.               |
+| Jornada reduzida (part-time).         | Terceirizados não vinculados.          |
+
+### **5.2. Turnover**
+| **Inclusão**                          | **Exclusão**                          |
+|---------------------------------------|---------------------------------------|
+| Demissões voluntárias.                | Transferências internas.              |
+| Demissões por justa causa.            | Licenças temporárias.                 |
+| Término de contrato temporário.        | Processo de desligamento não oficial. |
+| Aposentadorias.                       | Terceirizados.                        |
+| Mortes.                               |                                       |
+
+### **5.3. Vagas Abertas**
+| **Inclusão**                          | **Exclusão**                          |
+|---------------------------------------|---------------------------------------|
+| Vagas aprovadas no orçamento.        | Vagas já preenchidas.                 |
+| Em processo seletivo.                 | Vagas canceladas.                     |
+| Temporariamente suspensas.            | Posições futuras não aprovadas.      |
+| Reposições.                           | Vagas para estagiários.               |
+
+### **5.4. Taxa de Ocupação**
+| **Inclusão**                          | **Exclusão**                          |
+|---------------------------------------|---------------------------------------|
+| Vagas orçamentadas.                  | Vagas não orçamentadas.               |
+| Vagas ocupadas.                       | Vagas canceladas.                     |
+| Em processo de contratação.           | Posições temporárias.                 |
+
+### **5.5. Custo com Pessoal**
+| **Inclusão**                          | **Exclusão**                          |
+|---------------------------------------|---------------------------------------|
+| Salários e encargos.                  | Treinamentos.                         |
+| Benefícios (VR, VT, saúde).            | Despesas com recrutamento.            |
+| Bonificações.                         | Benefícios não monetários.            |
+| Encargos trabalhistas.               | Custos com estagiários.              |
+
+### **5.6. Eventos de RH**
+| **Inclusão**                          | **Exclusão**                          |
+|---------------------------------------|---------------------------------------|
+| Admissões.                            | Atualizações cadastrais.              |
+| Demissões.                            | Treinamentos sem mudança de cargo.    |
+| Promoções.                            | Afastamentos não oficiais.            |
+| Transferências.                       | Movimentações de terceirizados.       |
+
+---
+
+## **6. Glossário**
+| **Termo**               | **Definição**                                                                          |
+|-------------------------|----------------------------------------------------------------------------------------|
+| **Headcount**           | Número total de funcionários ativos em um período.                                    |
+| **Turnover**            | Taxa de rotatividade (saídas de funcionários em relação ao total).                      |
+| **Vagas Abertas**      | Posições disponíveis para contratação, aprovadas no orçamento.                         |
+| **Taxa de Ocupação**   | Porcentagem de vagas preenchidas em relação ao planejado.                              |
+| **OPEX de RH**          | Despesas operacionais com pessoal (salários, benefícios, encargos).                  |
+| **Eventos de RH**       | Movimentações como admissões, demissões, promoções.                                   |
+| **Situação Ativa**      | Funcionário trabalhando ou em licença remunerada.                                     |
+| **Jornada Parcial**     | Contrato com menos horas que o padrão (ex.: 20h/semana).                             |
+| **Centro de Custo**     | Área/departamento responsável por um gasto (ex.: "Produção", "TI").                   |
+| **Flag**                | Indicador que classifica um registro (ex.: "tipo_funcionario_sk = temporário").        |
+| **Link Key**            | Identificador único que relaciona dados de diferentes tabelas.                        |
