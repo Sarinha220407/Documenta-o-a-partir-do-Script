@@ -1,0 +1,431 @@
+
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$#.##0,00;-R$#.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD.MM.YYYY';
+SET TimestampFormat='DD/MM/YYYY hh:mm:ss[.fff]';
+SET FirstWeekDay=6;
+SET BrokenWeeks=1;
+SET ReferenceDay=0;
+SET FirstMonthOfYear=1;
+SET CollationLocale='pt-BR';
+SET CreateSearchIndexOnReload=1;
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET LongMonthNames='janeiro;fevereiro;março;abril;maio;junho;julho;agosto;setembro;outubro;novembro;dezembro';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+SET LongDayNames='segunda-feira;terça-feira;quarta-feira;quinta-feira;sexta-feira;sábado;domingo';
+SET NumericalAbbreviation='3:k;6:M;9:G;12:T;15:P;18:E;21:Z;24:Y;-3:m;-6:μ;-9:n;-12:p;-15:f;-18:a;-21:z;-24:y';
+
+//SET bronze_layer = 'lib://Staging Recursos Humanos/\People Analytics\01. HR Medallion\01. Bronze\';
+//SET manual_source = '\\BRSPOWVQDEV01\QlikSharedFolder\CustomData\Eldorado Brasil\3. Recursos Humanos\People Analytics\02. Manual Source\';
+//SET ti_layer = '\\BRSPOWVQDEV01\QlikSharedFolder\CustomData\Eldorado Brasil\0.2. QVD Staging\1. SAP_BW\3. Recursos Humanos\';
+//SET external_layer = '\\BRSPOWVQDEV01\QlikSharedFolder\CustomData\Eldorado Brasil\3. Recursos Humanos\People Analytics\04. Fontes Externas\';
+
+SET bronze_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/01. Bronze/';
+SET silver_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/02. Silver/';
+SET gold_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/03. Gold/';
+SET manual_source = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/02. Manual Source/';
+SET ti_layer = 'lib://Staging Recursos Humanos/';
+SET external_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/04. Fontes Externas/';
+
+
+
+
+///////////////////////////        HEADCOUNT F      //////////////////////////////////////////////
+
+
+//antigo folha_relatorio.qvd
+
+bz_headcount_f:
+LOAD
+   *
+FROM [$(ti_layer)0STA_RHRMV012_001.qvd]
+(qvd);
+
+
+STORE bz_headcount_f INTO [$(bronze_layer)bz_headcount_f.QVD]
+(qvd);
+
+DROP Table bz_headcount_f;
+
+
+
+/////////////////////////////////////////     HEADCOUNT 2014 A 2018        ////////////////////////////////////////////////////
+
+
+bz_headcount_hist_f:
+LOAD
+   *
+FROM [$(manual_source)hc_historica_f.xlsx]
+(ooxml, embedded labels, table is [hc_hist]);
+
+
+STORE bz_headcount_hist_f INTO [$(bronze_layer)bz_headcount_hist_f.QVD]
+(qvd);
+
+DROP Table bz_headcount_hist_f;
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+//antigo Fato_Func.QVD
+
+
+bz_headcount_latest_f:
+LOAD
+*
+,[Funcionário (Salário)] as [Funcionário]
+,[Funcionário (Salário) TEXT] as [Funcionário TEXT]
+
+// FROM [$(ti_layer)0STA_DRMFUNSAL_001.qvd]
+// (qvd);
+
+FROM [$(ti_layer)0STA_DRMFUNSAL_001.qvd]
+(qvd);
+
+// STORE bz_salario_f INTO [$(bronze_layer)bz_salario_f.QVD]
+
+
+STORE bz_headcount_latest_f INTO [$(bronze_layer)bz_headcount_latest_f.QVD]
+(qvd);
+
+
+
+DROP Table bz_headcount_latest_f;
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+// antigo Func_Sal.QVD
+
+/*bz_salario_f:
+LOAD
+*
+FROM [$(ti_layer)0STA_DRMFUNSAL_001.qvd]
+(qvd);
+
+STORE bz_salario_f INTO [$(bronze_layer)bz_salario_f.QVD]
+(qvd);
+
+DROP Table bz_salario_f;
+*/
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+bz_pessoa_d:
+LOAD
+   *
+FROM [$(ti_layer)0STA_DRMPESSOA_001.qvd]
+(qvd);
+
+
+STORE bz_pessoa_d INTO [$(bronze_layer)bz_pessoa_d.QVD]
+(qvd);
+
+DROP Table bz_pessoa_d;
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+bz_hierarquia_d:
+LOAD
+*
+FROM [$(ti_layer)0STA_RHRMV007_001.qvd]
+(qvd);
+
+
+STORE bz_hierarquia_d INTO [$(bronze_layer)bz_hierarquia_d.QVD]
+(qvd);
+
+DROP Table bz_hierarquia_d;
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+bz_excel_funcao_d:
+LOAD
+     Status,
+    Cargo, 
+    "CBO 
+2002",
+    "Descrição CBO",
+    GS,
+    Carreira,
+    "Grupo de Cargo",
+    "Grupo Relatório",
+    "Tabela Salarial",
+    ISONOMIA,
+    "PPR/PRV/RVD",
+    PESAGEM,
+    "Grupo AVD",
+    "Grupo de Cargo 2",
+    CNH,
+    FORMAÇÃO,
+    "CURSO 1",
+    "CURSO 2",
+    "CURSO 3",
+    "CURSO 4",
+    "CURSO 5",
+    "CURSO 6",
+    "CURSO 7",
+    "CURSO 8"
+FROM [$(manual_source)funcoes_d.xlsx]
+(ooxml, embedded labels, header is 2 lines, table is [Cargos Eldorado]);
+
+STORE bz_excel_funcao_d INTO [$(bronze_layer)bz_excel_funcao_d.QVD]
+(qvd);
+
+DROP TABLE bz_excel_funcao_d;
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+bz_excel_filial_d:
+LOAD
+ coligada_cod
+,filial_cod
+,filial_nome
+
+FROM [$(manual_source)filial_d.xlsx]
+(ooxml, embedded labels, table is [filial]);
+
+STORE bz_excel_filial_d INTO [$(bronze_layer)bz_excel_filial_d.QVD]
+(qvd);
+
+DROP TABLE bz_excel_filial_d;
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+bz_excel_salario_d:
+LOAD
+*
+
+FROM [$(manual_source)tabela_salarial_d.xlsx]
+(ooxml, embedded labels, table is [2025]);
+
+STORE bz_excel_salario_d INTO [$(bronze_layer)bz_excel_range_salario_d.QVD]
+(qvd);
+
+DROP Table bz_excel_salario_d;
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+// SET vStartYear = 2021;
+// SET vEndYear = 2025;
+
+// bz_excel_orcamento_historico_f:
+// LOAD
+
+//     load_date,
+//     centro_de_custo,
+//     funcao,
+//     orcado
+// FROM [$(manual_source)orcamento_historico.xlsx]
+// (ooxml, embedded labels, table is [$(vStartYear)]);
+
+// FOR vYear = $(vStartYear) + 1 TO $(vEndYear)
+//     CONCATENATE (bz_excel_orcamento_historico_f)
+//     LOAD
+//         load_date,
+//         centro_de_custo,
+//         funcao,
+//         orcado
+//     FROM [$(manual_source)orcamento_historico.xlsx]
+//     (ooxml, embedded labels, table is [$(vYear)]);
+// NEXT
+
+// STORE bz_excel_orcamento_historico_f INTO [$(bronze_layer)bz_excel_orcamento_historico_f.QVD] (qvd);
+
+// DROP Table bz_excel_orcamento_historico_f;
+
+// bz_excel_orcamento_historico_f:
+// LOAD
+//     Date#(load_date, 'DD.MM.YYYY') as load_date, 
+//     centro_de_custo,
+//     funcao,
+//     orcado
+// FROM [$(manual_source)orcamento_historico.xlsx]
+// (ooxml, embedded labels, table is [orcamento]);
+
+// STORE bz_excel_orcamento_historico_f INTO [$(bronze_layer)bz_excel_orcamento_historico_f.QVD] (qvd);
+
+// DROP Table bz_excel_orcamento_historico_f;
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+bz_excel_hc_orcamento_historico_f:
+LOAD
+*
+
+FROM [$(manual_source)hc_orcamento_historico.xlsx]
+(ooxml, embedded labels, table is [orcamento_historico]);
+
+STORE bz_excel_hc_orcamento_historico_f INTO [$(bronze_layer)bz_excel_hc_orcamento_historico_f.QVD]
+(qvd);
+
+DROP Table bz_excel_hc_orcamento_historico_f;
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+bz_excel_estrutura_cc_d:
+LOAD
+*
+
+FROM [$(manual_source)centro_de_custo_d.xlsx]
+(ooxml, embedded labels, table is [Estrutura CC_Áreas]);
+
+STORE bz_excel_estrutura_cc_d INTO [$(bronze_layer)bz_excel_estrutura_cc_d.QVD]
+(qvd);
+
+DROP Table bz_excel_estrutura_cc_d;
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+bz_movimentos_f:
+LOAD
+*
+FROM [$(ti_layer)0STA_RHRMV043_001.qvd]
+(qvd);
+
+STORE bz_movimentos_f INTO [$(bronze_layer)bz_movimentos_f.QVD]
+(qvd);
+
+DROP Table bz_movimentos_f;
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+bz_posicoes_f:
+LOAD
+*
+FROM [$(ti_layer)0STA_RHRMV033_001.qvd]
+(qvd);
+
+STORE bz_posicoes_f INTO [$(bronze_layer)bz_posicoes_f.QVD]
+(qvd);
+
+DROP Table bz_posicoes_f;
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+bz_headcount_offshore_f:
+LOAD
+*
+FROM [$(ti_layer)0STA_RHRMV046_001.qvd]
+(qvd);
+
+STORE bz_headcount_offshore_f INTO [$(bronze_layer)bz_headcount_offshore_f.QVD]
+(qvd);
+
+DROP Table bz_headcount_offshore_f;
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+bz_excel_posicoes_f:
+LOAD
+*
+
+FROM [$(manual_source)posicoes_abertas.xlsx]
+(ooxml, embedded labels, table is [Posições]);
+
+STORE bz_excel_posicoes_f INTO [$(bronze_layer)bz_excel_posicoes_f.QVD]
+(qvd);
+
+DROP Table bz_excel_posicoes_f;
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+bz_externo_centro_custo_d:
+LOAD
+   *
+FROM [$(external_layer)TRFN_CC.CL.qvd]
+(qvd);
+
+
+STORE bz_externo_centro_custo_d INTO [$(bronze_layer)bz_externo_centro_custo_d.QVD]
+(qvd);
+
+DROP Table bz_externo_centro_custo_d;
+
+
+EXIT Script;

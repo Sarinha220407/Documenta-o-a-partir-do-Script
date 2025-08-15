@@ -1,0 +1,1749 @@
+
+
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$#.##0,00;-R$#.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD.MM.YYYY';
+SET TimestampFormat='DD.MM.YYYY hh:mm:ss[.fff]';
+SET FirstWeekDay=6;
+SET BrokenWeeks=1;
+SET ReferenceDay=0;
+SET FirstMonthOfYear=1;
+SET CollationLocale='pt-BR';
+SET CreateSearchIndexOnReload=1;
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET LongMonthNames='janeiro;fevereiro;março;abril;maio;junho;julho;agosto;setembro;outubro;novembro;dezembro';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+SET LongDayNames='segunda-feira;terça-feira;quarta-feira;quinta-feira;sexta-feira;sábado;domingo';
+SET NumericalAbbreviation='3:k;6:M;9:G;12:T;15:P;18:E;21:Z;24:Y;-3:m;-6:μ;-9:n;-12:p;-15:f;-18:a;-21:z;-24:y';
+
+//SET bronze_layer = '\\BRSPOWVQDEV01\QlikSharedFolder\CustomData\Eldorado Brasil\3. Recursos Humanos\People Analytics\01. HR Medallion\01. Bronze\';
+
+//SET silver_layer = '\\BRSPOWVQDEV01\QlikSharedFolder\CustomData\Eldorado Brasil\3. Recursos Humanos\People Analytics\01. HR Medallion\02. Silver\';
+
+
+SET bronze_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/01. Bronze/';
+SET silver_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/02. Silver/';
+SET gold_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/03. Gold/';
+SET manual_source = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/02. Manual Source/';
+SET ti_layer = 'lib://Staging Recursos Humanos/';
+SET external_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/04. Fontes Externas/';
+
+
+///////////////////////////        LOAD RAW      //////////////////////////////////////////////
+
+
+The above code is loading data from various QVD files into different QlikView tables. Each load statement is loading all fields (*) from a specific QVD file into a table. 
+Some of the tables have a filter condition applied using the "where" clause to only load data where the date is greater than or equal to '01.01.2019'. 
+The data is being loaded from QVD files located in the $(bronze_layer) directory.
+bz_headcount_f:
+Load
+*
+FROM [$(bronze_layer)bz_headcount_f.QVD]
+(qvd)
+where Date# ([Dia do calendário] , 'DD.MM.YYYY') >=  Date#('01.01.2019', 'DD.MM.YYYY')
+;
+
+
+bz_headcount_hist_f:
+Load
+*
+FROM [$(bronze_layer)bz_headcount_hist_f.QVD]
+(qvd);
+
+
+
+bz_headcount_latest_f:
+Load
+*
+FROM [$(bronze_layer)bz_headcount_latest_f.QVD](qvd)
+;
+
+
+bz_posicoes_f:
+Load
+*
+FROM [$(bronze_layer)bz_posicoes_f.QVD]
+(qvd);
+
+bz_excel_hc_orcamento_historico_f:
+Load
+*
+FROM [$(bronze_layer)bz_excel_hc_orcamento_historico_f.QVD]
+(qvd);
+
+bz_headcount_offshore_f:
+Load
+*
+FROM [$(bronze_layer)bz_headcount_offshore_f.QVD]
+(qvd);
+
+
+bz_excel_posicoes_f:
+Load
+*
+FROM [$(bronze_layer)bz_excel_posicoes_f.QVD]
+(qvd);
+
+
+
+bz_excel_estrutura_cc_d:
+Load
+*
+FROM [$(bronze_layer)bz_excel_estrutura_cc_d.QVD]
+(qvd);
+
+
+
+bz_pessoa_d:
+Load
+*
+FROM [$(bronze_layer)bz_pessoa_d.QVD]
+(qvd);
+
+
+
+bz_hierarquia_d:
+Load
+*
+FROM [$(bronze_layer)bz_hierarquia_d.QVD]
+(qvd);
+
+
+bz_excel_funcao_d:
+Load
+*
+FROM [$(bronze_layer)bz_excel_funcao_d.QVD]
+(qvd);
+
+
+bz_excel_range_salario_d:
+Load
+*
+FROM [$(bronze_layer)bz_excel_range_salario_d.QVD]
+(qvd);
+
+bz_excel_filial_d:
+Load
+*
+FROM [$(bronze_layer)bz_excel_filial_d.QVD]
+(qvd);
+
+bz_externo_centro_custo_d:
+Load
+*
+FROM [$(bronze_layer)bz_externo_centro_custo_d.QVD]
+(qvd);
+
+
+
+///////////////////////////        DIMENSION TEMP      //////////////////////////////////////////////
+
+
+
+The above code is creating a mapping table in QlikView script. It is loading data inline to create a mapping between the CODCOLIGADA and COLIGADA fields. This mapping table will be used to associate the CODCOLIGADA values with their corresponding COLIGADA names in the data model for further analysis and visualization in QlikView applications.
+coligada_d:
+MAPPING LOAD * Inline
+[
+CODCOLIGADA,   	COLIGADA,
+1,				Eldorado,
+2, 				Florestal,
+3,				OffShore,
+4,          	Rishis,
+5,				EBlog,
+30,             Cellulose Eldorado Austria GmbH
+31, 			Eldorado USA, Inc.
+32, 			Cellulose Eldorado Asia
+];
+
+
+
+
+The above code is a script written in QlikViews scripting language for loading data into a mapping table. 
+It is using the "Mapping Load" statement to load data from an inline table into a mapping table named "DIRETORIA_MAP". 
+The inline table contains mappings between different departments or directorates and their corresponding groups. 
+For example, it maps 'Dir. Industrial' to 'Industrial', 'Dir. Florestal' to 'Florestal', and so on. 
+This mapping table can be used in QlikView applications to associate departments with their respective groups for analysis and visualization purposes
+
+
+// DIRETORIA_MAP:
+// MAPPING LOAD * Inline
+// [
+// DIRETORIA,   					GRUPO DIRETORIA,
+// 'Dir. Industrial', 				'Industrial',
+// 'Dir. Florestal', 				'Florestal',
+// 'TI', 							'Corporativo',
+// 'Dir. Transportadora', 			'Transportadora',
+// 'Dir. Comercial e Logística', 	'Comercial e Logística',
+// 'Presidência', 					'Corporativo',
+// 'Dir. RH, Sustent. e Comun.', 	'Corporativo',
+// 'Dir. Financeira', 				'Corporativo',
+// 'Dir. Jurídica', 				'Corporativo',
+// '#N/D', 						'Corporativo'
+// ];
+
+
+The above code is creating a mapping table in QlikView script. It is defining a mapping between the "Tipo de Demissão" field values and their corresponding "Classificação Demissão" values. This mapping table is used to classify different types of dismissals as either "Involuntário" or "Voluntário" based on the values of the "Tipo de Demissão" field.
+CLASSIFICAÇÃO_MAP:
+MAPPING
+LOAD * INLINE
+[
+Tipo de Demissão, Classificação Demissão
+2,Involuntário
+8,Involuntário
+N,Involuntário
+T,Involuntário
+4,Voluntário
+V,Voluntário
+1,Involuntário   // Involuntário - JC
+];
+
+
+The above code is loading data into a mapping table named MAP_EVENTOS. The table contains two fields: CODEVENTO and TIPO. Each row in the table represents a mapping between a CODEVENTO (event code) and a corresponding TIPO (event type).
+MAP_EVENTOS:
+MAPPING LOAD * INLINE [
+CODEVENTO, 	TIPO
+2, 			SB
+5,			SF
+6,			SM
+7,			AD Comp.
+14,			Insuf. Saldo
+21,			Insuf. Saldo
+24, 		HE ESPORÁDICA
+25, 		HE ESPORÁDICA
+27, 		HE ESPORÁDICA
+28, 		HE RECORRENTE
+31, 		HE ESPORÁDICA
+35, 		HE ESPORÁDICA
+36, 		HE ESPORÁDICA
+37, 		HE ESPORÁDICA
+58, 		HE RECORRENTE
+62,			ADICIONAL
+65,			ADICIONAL
+66,			ADICIONAL
+68,			ADICIONAL
+69,			ADICIONAL
+72,			ADICIONAL
+73,			ADICIONAL
+77,			AUXÍLIO
+80,			PLR
+99,			AUXÍLIO
+108,		DSR
+110,		DSR
+111,		DSR
+121,		Dev Falta
+167,		FÉRIAS
+170,		FÉRIAS
+211,		SB
+213, 		FÉRIAS
+214,		FÉRIAS
+255,		FALTAS
+256,		ATRASO
+257,		DSR Faltas
+271,		DESC. INTERODONTO
+277,		DESC. SEGURO VIDA
+364, 		FGTS SB
+490,		HE RECORRENTE
+514,		HE ESPORÁDICA
+506,		HE ESPORÁDICA
+695,		HE ESPORÁDICA
+696,		HE ESPORÁDICA
+698,		HE ESPORÁDICA
+700,		HE RECORRENTE
+755,		FALTAS
+800,		HE RECORRENTE
+8006, 		HE ESPORÁDICA
+8007, 		HE ESPORÁDICA
+8009, 		HE ESPORÁDICA
+801,  		HE RECORRENTE
+530,  		HE ESPORÁDICA
+1025, 		FÉRIAS
+1030, 		REEMBOLSO MENSALIDADE UNIMED
+1031, 		REEMBOLSO COPART UNIMED
+1033, 		MENSALIDADE DEPENDENTES UNIMED
+1034, 		MENSALIDADE TITULAR UNIMED
+];
+
+
+
+The code is loading data from a QVD file named "sv_funcao_d.QVD" located in the specified path variable "$(silver_layer)". It is then performing the following transformations on the data:
+1. Trimming any leading or trailing spaces from the values in the field "funcao_nome".
+2. Capitalizing the first letter of each word in the field "funcao_nome".
+3. Loading the transformed data into a mapping table with two fields: the trimmed and capitalized "funcao_nome" field and the "funcao_cod" field.
+Map_funcao:
+MAPPING LOAD
+	Trim( Capitalize(funcao_nome)),
+    funcao_cod
+    
+    
+FROM [$(silver_layer)sv_funcao_d.QVD]
+(qvd);
+
+
+///////////////////////////        PRE CENTRO DE CUSTO      //////////////////////////////////////////////
+
+
+
+The code provided is a script written in QlikViews scripting language for data transformation and loading. Here is a breakdown of what the code is doing:
+centro_de_custo:
+Load
+[Centro Custo] 																as centro_de_custo
+,[Descrição]                                                                as centro_de_custo_nome
+,[Diretoria]																as diretoria
+,[Área]																		as area
+,If(
+    Match(Diretoria, 'Financeiro', 'RH, Sustent e Com', 'Presidência', 'Jurídico', 'TI'), 
+        'Corporativo', 
+         Diretoria
+    ) as grupo_diretoria,
+If(
+  Match(Diretoria, 'Financeiro', 'RH, Sustent e Com' , 'Presidência', 'Jurídico', 'TI'), 
+        'CORP',  
+ If(Match(Diretoria, 'Industrial'),
+        'IND',
+ If(Match(Diretoria, 'Comercial'),
+        'COM',
+ If(Match(Diretoria, 'Logística'),
+        'LOG',
+ If(Match(Diretoria, 'Florestal'),
+        'FLO',
+ If(Match(Diretoria, 'Transportadora', 'Transportadora Madeira'),
+        'TRP'))))))  as grupo_diretoria_micro
+
+, [Centro de lucro]    													    as centro_lucro_cod
+, [Descrição CL] 															as centro_lucro_nome
+
+resident bz_externo_centro_custo_d
+
+//remove linhas com centro de custo nulo ou igual a '#'
+WHERE Len(Trim([Centro Custo])) > 0 AND [Centro Custo] <> '#';
+
+
+STORE centro_de_custo INTO [$(silver_layer)sv_centro_de_custo_d.QVD]
+(qvd);
+
+
+
+
+///////////////////////////        PRE FUNCAO      //////////////////////////////////////////////
+
+
+
+The above code is a script written in QlikViews scripting language for data transformation and loading. It is loading distinct data from a table named "bz_excel_funcao_d" and performing various transformations on the data before storing it into a QVD file named "sv_funcao_d.QVD" in the specified location.
+funcao:
+Load Distinct
+     
+     
+     RIGHT('00000' & KEEPCHAR([Cargo], '0123456789'), 5) 																as funcao_cod
+    ,SubField([Cargo], ' - ', 2) 																						as funcao_nome
+    ,IF([Carreira] = '1-Gestão' OR [Grupo Relatório] = '5 - Especialista', 'Líder', 'Não Líder')						as lider_flag
+    ,IF(Match(SubField(Capitalize([Grupo de Cargo 2]), ' - ', 2), 'Operacional','Técnico')
+    , 'Operacional', 'Não Operacional')																					as operacional_flag
+    ,[Carreira]												                                                			as carreira
+    ,SubField(Capitalize([Grupo de Cargo]), ' - ', 2)																	as grupo_cargo
+    ,SubField(Capitalize([Grupo de Cargo 2]), ' - ', 2) 																as grupo_cargo_micro
+    ,[Grupo Relatório]																									as grupo_relatorio
+    ,GS																										    		as gs
+    ,UPPER("Tabela Salarial")																							as cargo_salarial_tipo    
+    ,[CBO 
+2002]																													as cbo_2002
+    ,[Descrição CBO]																						    		as cbo_descricao
+
+resident bz_excel_funcao_d;
+
+STORE funcao INTO [$(silver_layer)sv_funcao_d.QVD]
+(qvd);
+
+
+
+///////////////////////////        PRE HEADCOUNT      //////////////////////////////////////////////
+
+
+
+
+The code is loading data for employees who were hired and then terminated before the end of the month of their hiring date. 
+It calculates the end of the month for the hiring date and compares it with the termination date to filter out employees who were terminated before the end of their hiring month. 
+Additionally, it excludes terminations due to transfers and excludes employees hired as temporary (indicated by 'T' in the field [Tipo de Admissão]). 
+Finally, it drops the fields Situação and [Situação TEXT] from the temporary table bz_admitidos_demitidos_temp.
+// Passo 1: Carregar funcionários admitidos que foram demitidos antes do fim do mês de admissão
+
+
+bz_admitidos_demitidos_temp:
+
+Load
+*,
+Date(MonthEnd(Date#([Data Admissão], 'DD.MM.YYYY'))) as [Dia do calendário]
+
+Resident bz_headcount_latest_f
+
+WHERE 
+// regra de admitido e contratado no mesmo mes
+Date(Date#([Data Demissão], 'DD.MM.YYYY')) < Date(MonthEnd(Date#([Data Admissão], 'DD.MM.YYYY')))
+// remove demissões de transferência
+and [Tipo de Demissão] <> 5
+AND NOT Match([Tipo de Admissão], 'T')  
+
+
+;
+    
+Drop Field Situação, [Situação TEXT] from bz_admitidos_demitidos_temp;
+    
+The code is performing a left join operation between the table "bz_admitidos_demitidos_temp" and the table "bz_headcount_f". It is loading the columns "Funcionário" and a constant value '1' as [Existe na Headcount] from the table "bz_headcount_f". This operation will help identify which employees from "bz_admitidos_demitidos_temp" are still present in the headcount data.
+// Passo 2: Verificar quais desses funcionários ainda estão na base de headcount
+
+Left Join (bz_admitidos_demitidos_temp)
+
+Load
+    Funcionário,
+    '1' as [Existe na Headcount]
+
+Resident bz_headcount_f;
+
+
+
+The code is filtering out records from the table `bz_admitidos_demitidos_temp` that are not present in the `headcount` table. It creates a new table `bz_headcount_and_short_tenure_and_offshore_f` by loading all columns from `bz_admitidos_demitidos_temp` and adding additional columns 'Situação', 'Situação TEXT', and 'short_tenure'. The filter condition `WHERE IsNull([Existe na Headcount])` ensures that only records not found in the `headcount` table are included in the new table. Finally,
+// Passo 3: Filtrar apenas os que NÃO estão na headcount (para adicionar depois)
+
+
+bz_headcount_and_short_tenure_and_offshore_f:
+
+NoConcatenate
+
+Load 
+    * 
+    ,'X'			 as Situação               // --------------------IMPORTANTE----------------------- TODOS OS ADMITIDOS E DESLIGADOS NO MESMO MES SAO CLASSIFICADOS FORÇADOS COM ESSE STATUS POIS DO CONTRARIO ENTRARIO COMO DESLIGADO NORMAL. ISSO NAO AFETA EM NADA O APARECIMENTO DELE COMO DESLIGADO NA TERMINATION.
+    ,'C/Dem no mês'	 as [Situação TEXT]
+    ,1 				 as short_tenure 
+Resident bz_admitidos_demitidos_temp
+WHERE IsNull([Existe na Headcount]);
+
+Drop Table bz_admitidos_demitidos_temp;
+
+The code provided is concatenating and transforming data from different fields in a dataset. Here is a breakdown of what the code is doing:
+Concatenate
+
+
+Load
+'1/'&MID([Centro de custo], 6)                                                                                    as [Centro de Custo]
+,[Chapa] 																										  as [Funcionário]
+//,AutoNumberHash128([Função])+90000																			  as [Funções]
+// ,RIGHT('00000' & [Código Função], 5) 																		  as [Funções]
+,ApplyMap('Map_funcao', Trim(capitalize([Função])))											                      as [Funções]
+,Date#([Data Admissão] , 'DD.MM.YYYY')																              as [Data Admissão]
+,capitalize([Função]) 																							  as [Funções TEXT]
+,Left(Capitalize(Genero),1) 																					  as [Sexo]
+,Capitalize([Nome])																								  as [Funcionário TEXT]
+,LEFT([Situação],1)																								  as [Situação]
+,Mid([Situação],5)																								  as [Situação TEXT]
+,LEFT([Tipo Funcionário],1)																						  as [Tipo Funcionário]
+,Mid([Tipo Funcionário],5)																						  as [Tipo Funcionário TEXT]
+,Date#([Dia do calendário], 'DD.MM.YYYY')                                                                         as [Dia do calendário]
+,IF(Match(Left(Mid([Centro de custo], 6), 1), '4', '5', '6'), 
+    Pick(Match(Left(Mid([Centro de custo], 6), 1), '4', '5', '6'), 30, 31, 32), 
+    0
+) 																												  as [Coligadas]
+,1  																											  as [Código Filial]
+,1																												  as offshore
+
+The code provided is a script in QlikView or Qlik Sense for data manipulation. Here is a breakdown of what the code is doing:
+Resident bz_headcount_offshore_f
+
+where [Data Demissão] = '#';
+
+Drop Table bz_headcount_offshore_f;
+
+Concatenate
+
+Load
+*
+,1																												  as hc_hist
+
+Resident bz_headcount_hist_f;
+
+
+concatenate
+
+// Passo 4: Concatenar com a base completa de headcount
+The above code is loading all records from the table `bz_headcount_f` into memory as a resident table.
+Load * 
+Resident bz_headcount_f;
+// Carrega todos registros
+
+
+
+
+
+
+///////////////////////////        SV HEADCOUNT      //////////////////////////////////////////////
+
+
+
+
+
+The code snippet is loading data from a source and transforming it using various fields such as date formatting, employee ID, employee name, function code, function name, date of hire, and calculating the number of days an employee has been with the company. The data is being loaded into a table or data structure for further analysis or processing.
+
+headcount_temp_1:
+
+Load
+    Date#([Dia do calendário], 'DD.MM.YYYY') 																			as load_date  
+    ,[Funcionário] 																										as chapa
+    ,[Funcionário TEXT] 																								as nome
+    ,RIGHT('00000' & [Funções], 5) 																						as funcao_cod
+    ,[Funções TEXT] 																									as funcao_nome
+    ,Date#([Data Admissão], 'DD.MM.YYYY') 																			    as data_admissao
+    ,(Date#([Dia do calendário], 'DD.MM.YYYY') - Date#([Data Admissão], 'DD.MM.YYYY')) 									as tempo_empresa_dias
+    
+
+
+ The code snippet provided is calculating the difference in years between the "Dia do calendário" (Calendar Day) and "Data Admissão" (Hire Date) fields in a QlikView script. It then uses this difference to determine if a person is a new hire or not based on whether the difference is less than 1 year.
+ // a regra de new hire e contratação tipo é a mesma, diferencia true or false no resultado para que seja montada a dimensao na proxima camada   
+    
+
+    ,IF(Num( (Date#([Dia do calendário], 'DD.MM.YYYY') - Date#([Data Admissão], 'DD.MM.YYYY')) / 365.25, '#,##') 
+    < 1,
+    'Novo Contratado', 'Não Novo Contratado')	                                                                        as contratacao_tipo
+
+    ,IF(Num( (Date#([Dia do calendário], 'DD.MM.YYYY') - Date#([Data Admissão], 'DD.MM.YYYY')) / 365.25, '#,##') 
+    < 1,
+    'TRUE', 'FALSE')                        	                                                                        as new_hire_flag
+
+
+The code is checking if the employees were hired in the same month as the current calendar month. It uses the Date# function to convert the date strings to date values, then compares the month end dates of the hiring date and the current calendar date. If they match, the 'admitido_flag' field is set to 'TRUE', otherwise it is set to 'FALSE'.
+// a regra de admitido é para que seja destacado os funcionarios que foram admitidos no mes
+
+
+    ,IF( Date(MonthEnd(Date#([Data Admissão], 'DD.MM.YYYY'))) = Date(MonthEnd(Date#([Dia do calendário], 'DD.MM.YYYY'))),
+    'TRUE', 'FALSE') 																									as admitido_flag
+
+
+The code snippet provided is checking if the difference in years between the 'Dia do calendário' (Calendar Day) and 'Data Admissão' (Hiring Date) fields is less than or equal to 0.25 years (which is approximately 3 months). If the condition is met, it returns 'TRUE' as the value for the field 'admitido_flag_3meses', otherwise it returns 'FALSE'. This is used to determine if an employee has been hired within the last 3 months.
+// a regra de admitidos até 3 meses
+
+
+    ,IF(Num( (Date#([Dia do calendário], 'DD.MM.YYYY') - Date#([Data Admissão], 'DD.MM.YYYY')) / 365.25, '#,##')  <= 0.25,
+    'TRUE',
+    'FALSE'
+) 																														as admitido_flag_3meses
+                                                                                                                       
+
+
+
+
+//   ,IF(
+  
+//   short_tenure = 1, 'FALSE',
+//   IF(
+
+//     Match(Situação, 'A', 'E', 'F', 'N', 'O','Q', 'R', 'T', 'U', 'V', 'W','Y' )  
+// // A	Ativo
+// // E	Licença Mater.
+// // F	Férias
+// // N	Mandato Sindical Ônus do Empregador
+// // O	Doença Ocupacional
+// // Q	Prisão / Cárcere
+// // R	Licença Remun.
+// // T	Af Ac. Trabalho
+// // U	Outros
+// // V	Aviso Prévio
+// // W	Licença Mater. Compl. 180 dias
+// // Y	Licença Patemidade
+
+//     AND Match([Tipo Funcionário], 'B', 'D', 'E', 'F', 'I', 'M', 'N', 'O', 'P', 'R', 'V', 'X')
+// // B	Temporário com redução de encargos
+// // D	Diretor
+// // E	Estatutário
+// // F	Temporário/Comissionista
+// // I	Cedido
+// // M	Misto
+// // N	Normal
+// // O	Comissionista
+// // P	Af.Previdência ---------Temporário REMOVIDO DO TRUE A PEDIDO DO MURILO POIS NAO TEMOS CONTROLE DE ATESTADO PARA DEFINIR CURTO E LONGO PRAZO
+// // R	Rural
+// // V	Contrato Verde/Amarelo
+// // X	Expatriado
+
+//             ,            
+//     		'TRUE',
+//     		'FALSE'
+//       )	)																    											as headcount_flag_new
+      
+ The code is checking certain conditions and setting a flag based on those conditions. 
+ It checks if the length of the "Situação" field after trimming is greater than 0, if the "Funções TEXT" field does not contain the word "Estagiário", if the "Tipo Funcionário" 
+ field is equal to 'N', and if the "Situação" field is equal to 'A', 'E', 'F', or 'V'. 
+ If all these conditions are met, it sets the "headcount_flag_new" field to 'TRUE', otherwise it sets it to 'FALSE'
+ 
+ , if(
+    Len(Trim(Situação)) > 0 and
+    WildMatch([Funções TEXT], '*Estagiário*') = 0 and
+    Match([Tipo Funcionário],'N') and
+    Match(Situação, 'A', 'E', 'F', 'V'),
+    
+    'TRUE',
+    'FALSE'
+) as headcount_flag_new // regra HR Analytics
+
+      
+      
+      
+      
+    The above code appears to be a data transformation or mapping process for various fields in a dataset. Here is a summary of what the code is doing:
+     ,[Situação]							 																			as situacao_cod
+     ,[Situação TEXT]																									as situacao_nome
+//      ,IF(MATCH([Situação], 'A','E','F','V'), 'Ativo', 'Afastado')		    											as headcount_status
+     ,'REVISAR!'                                                                                                        as dias_afastados
+     ,[Tipo Funcionário] 																								as tipo_funcionario_cod														
+     ,[Tipo Funcionário TEXT]                                                                                           as tipo_funcionario_nome
+     ,MID([Centro de Custo], 3)                                                                                         as centro_de_custo
+     ,[Seção]                                                                                                           as secao_cod
+     ,[Coligadas]                                                                                                       as coligada_cod
+     ,IF(MATCH([Coligadas], ''),NULL(), APPLYMAP('coligada_d',[Coligadas])) 			                                as coligada_nome
+     ,[Código Filial]                                                                                                   as filial_cod
+     ,REPLACE([Salário], '.', ',')																					    as salario
+     ,FLOOR( [Jornada Mensal] / 1000 ) / 60	 																			as jornada_mensal
+     ,[Horários: Escala TEXT]																							as escala
+     ,[Data de Nascimento]                                                                                              as nascimento_data
+     ,Floor((Date#([Dia do calendário], 'DD.MM.YYYY') - Date#([Data de Nascimento], 'DD.MM.YYYY')) / 365.25) 			as idade
+     ,IF(
+            Floor(( Date(Date#("Dia do calendário", 'DD.MM.YYYY'), 'DD.MM.YYYY') 
+            	       - Date#("Data de Nascimento", 'DD.MM.YYYY') ) / 365.25) <= 30,  			'Até 30 anos',
+            IF(
+                Floor(( Date(Date#("Dia do calendário", 'DD.MM.YYYY'), 'DD.MM.YYYY') 
+                		   - Date#("Data de Nascimento", 'DD.MM.YYYY') ) / 365.25) > 50,    	'Acima de 50 anos',
+                																				
+                                                                                                'De 31 a 50 anos')
+         )																											   as idade_grupo
+      ,IF([Sexo] = 'M', 'Masculino',
+	   IF([Sexo] = 'F', 'Feminino',
+					    'Não informado')) 																			   as genero
+
+      ,[Grau de Instrução TEXT]                                                                                        as grau_instrucao
+      ,[Cor e Raça]  																								   as raca_cod
+      ,[Cor e Raça TEXT]  																							   as raca_nome 	//verificar pois nao está vindo preenchido
+      ,[Cota PCD]																									   as cota_pcd  
+      ,offshore
+      ,hc_hist
+      ,short_tenure
+    
+Resident bz_headcount_and_short_tenure_and_offshore_f
+
+The above code is a WHERE clause used in a query to filter data based on certain conditions. Here is a breakdown of what each condition is doing:
+WHERE
+1=1
+and
+ Date# ([Data Admissão] , 'DD.MM.YYYY') <=  Date# (Today(), 'DD.MM.YYYY')  // Inclusão em acordo com o time de folha pois o cadastro do funcionário é feito antes de o trabalho efetivamente começar.
+
+   	and NOT Match([Situação], 'Z', '') 
+    and MID([Centro de Custo], 3) > 99 
+    and NOT Match([Tipo Funcionário], 'U', 'S') 
+    and NOT Match([Funções TEXT], 
+        'Conselheiro Adm', 
+        'Conselheiro Fiscal', 
+        '703', 
+        '704', 
+        '706'
+    )
+   The above code is using the `NOT Match` function to filter out specific values from the `[Funcionário]` field. 
+   It is excluding the values listed in the long list from being matched in the query.
+    and NOT Match([Funcionário], 
+        '999907338', '999007075', '999999937', '999997747', '999997704',
+        '999999078', '50003102', '50003331', '50006331', '50006095',
+        '50005321', '50006666', '50003263', '50002600', '990007078',
+        '990007075', '4268', '50007122', '50007171', '50007177',
+        '50006978', '50007427', '50007435', '990008274', '999908188',
+        '990007079', '888807074', '999997075', '990007132', '990007362',
+        '990007320', '999997321', '950007284', '888887267', '990007465',
+        '888807465', '990007495', '999997493', '888887554', '40000009',
+        '999907551', '990007508', '4269', '999907759', '990007810',
+        '999008084', '999908130', '990008219', '990008497', '999007508',
+        '999007079', '990008293', '990008234'
+    )
+    
+The code snippet provided seems to be a set of comments indicating certain conditions or criteria for bypassing certain employees. It mentions bypassing employees who are both contracted and hired in the same month, employees with a short tenure, employees who are offshore, and employees with a specific history (hc_hist). These conditions suggest that the code is likely part of a larger program or system that processes employee data and applies certain rules or filters to determine which employees should be bypassed or excluded from certain actions or processes.
+// da bypass em contratados e admitidos do mesmo mês
+// or  short_tenure = 1
+// da bypass em funcionários de offshore
+or  offshore=1
+or  hc_hist=1
+
+
+;
+
+
+
+
+													//join com tabela de hierarquia de centro de custo
+
+
+The above code is performing a LEFT JOIN operation on the table "headcount_temp_1" with a temporary table named "centro_de_custo". It is loading distinct values from the "centro_de_custo" table and selecting specific fields such as "Dir.", "Área", and "Grupo Diretoria" while applying some conditional logic using IF statements. However, some of the commented-out code suggests that there may have been some conditional logic or mapping that was previously implemented but is currently disabled.
+LEFT JOIN (headcount_temp_1)
+LOAD Distinct
+//     [Centro Custo]  																                                    as centro_de_custo
+// //     ,IF(MATCH([Dir.], 'Dir. Planejamento Estratégico'), NULL(), [Dir.]) 												as diretoria
+//     ,[Dir.]																												as diretoria
+
+//     ,IF([Área] = '-', NULL(), [Área]) 																					as area
+// //     ,IF(
+// //     	MATCH(IF(MATCH([Dir.], 'Dir. Planejamento Estratégico'), NULL()
+// //         , [Dir.]), '')
+// //         ,NULL()
+// //         , APPLYMAP('DIRETORIA_MAP',IF(MATCH([Dir.], 'Dir. Planejamento Estratégico')
+// //         , NULL(), [Dir.])))																								as grupo_diretoria   
+//     ,[Grupo Diretoria]																									as grupo_diretoria
+*
+Resident centro_de_custo;
+
+
+
+
+
+
+
+
+
+
+
+											// headcount latest por chapa. Adiciona somente detalhes que a core nao possui
+                                            
+                                            
+                                            
+The above code is performing a LEFT JOIN operation by loading data from the table `headcount_temp_1` and renaming the columns `[Pessoas]` and `[Funcionário]` as `pessoa` and `chapa`, respectively. The data is being loaded from the table `bz_headcount_latest_f`.
+                                            
+LEFT JOIN (headcount_temp_1)
+LOAD 
+    [Pessoas] 																											as pessoa 
+   ,[Funcionário] 																			                           	as chapa 
+Resident bz_headcount_latest_f;     
+    
+
+
+
+
+
+												// adiciona dados de pessoa
+                                        
+                                        
+                                        
+                                        
+
+The above code is performing a LEFT JOIN operation between the table `headcount_temp_1` and the existing table `bz_pessoa_d`. It selects distinct columns from `headcount_temp_1`, renames them as needed, and loads the data into the `bz_pessoa_d` table. The purpose is to combine the data from `headcount_temp_1` with the existing data in `bz_pessoa_d` based on a common key or keys. The LEFT JOIN ensures that all records from `headcount_temp_1` are included in the result, even if there are
+The above code is performing a LEFT JOIN operation by loading distinct columns from the table `headcount_temp_1` and renaming them accordingly. 
+The data is being loaded into a resident table named `bz_pessoa_d`. 
+
+LEFT JOIN (headcount_temp_1)
+LOAD Distinct
+     [Pessoas]                                                                                                         as pessoa
+    ,[CPF RM]                                                                                                          as cpf
+    ,[Carteira de Identidade]                                                                                          as rg
+    ,[Carteira de Motorista]                     																	   as cnh_cod
+    ,[Tipo da Carteira de Habilitação]                                                                                 as cnh_tipo
+    ,[Data Vencimento da CNH]                                                                                          as cnh_vencimento
+    ,[Estado]																									       as estado
+    ,[Estado Civil]  																								   as estado_civil_cod
+    ,[Estado Civil TEXT]																							   as estado_civil_nome
+    ,[Nacionalidade]  																								   as nacionalidade                                                                                                                                                                
+    ,[Naturalidade] 																								   as naturalidade                                                                                                         
+    ,[Rua]                                            																   as rua
+    ,[Número]																										   as numero
+    ,[Complemento]                                                                                                     as complemento
+    ,[Bairro]																										   as bairro
+    ,[Cidade]                                                                                                          as cidade
+    ,[Pais] 																										   as pais
+    ,[CEP]																											   as cep
+    ,[Telefone 1]                                                                                                      as telefone
+        
+Resident bz_pessoa_d;
+
+
+
+
+													// adiciona dados de hierarquia
+
+
+
+
+LEFT JOIN (headcount_temp_1)
+
+The code provided is a snippet of a script that appears to be loading data from a table named "Distinct Funcionário" and performing some transformations on the data. Here is a breakdown of the code:
+LOAD Distinct
+	Funcionário																											 as chapa
+    ,IF(TRIM("Endereço Internet Mail")= '', 'Nenhum Registro Encontrado', "Endereço Internet Mail") 				     as email												
+    
+    // Remove o texto '1/' dos campos caso esteja presente
+    ,[Hierarquia Nível 1]                                                                                                as [hierarquia_cod_n1]
+    ,IF(LEFT([Hierarquia Nível 1 TEXT], 2) = '1/', MID([Hierarquia Nível 1 TEXT], 3), [Hierarquia Nível 1 TEXT])		 as [hierarquia_nome_n1]
+    
+    ,[Hierarquia Nível 2]                                                                                                as [hierarquia_cod_n2]
+    ,IF(LEFT([Hierarquia Nível 2 TEXT], 2) = '1/', MID([Hierarquia Nível 2 TEXT], 3), [Hierarquia Nível 2 TEXT]) 		 as [hierarquia_nome_n2]
+    
+    ,[Hierarquia Nível 3]                                                                                                as [hierarquia_cod_n3]
+    ,IF(LEFT([Hierarquia Nível 3 TEXT], 2) = '1/', MID([Hierarquia Nível 3 TEXT], 3), [Hierarquia Nível 3 TEXT]) 		 as [hierarquia_nome_n3]
+    
+    ,[Hierarquia Nível 4]                                                                                                as [hierarquia_cod_n4]
+    ,IF(LEFT([Hierarquia Nível 4 TEXT], 2) = '1/', MID([Hierarquia Nível 4 TEXT], 3), [Hierarquia Nível 4 TEXT]) 		 as [hierarquia_nome_n4]
+    
+    ,[Hierarquia Nível 5]                                                                                                as [hierarquia_cod_n5]
+    ,IF(LEFT([Hierarquia Nível 5 TEXT], 2) = '1/', MID([Hierarquia Nível 5 TEXT], 3), [Hierarquia Nível 5 TEXT]) 		 as [hierarquia_nome_n5]
+    
+    ,[Hierarquia Nível 6]                                                                                                as [hierarquia_cod_n6]
+    ,IF(LEFT([Hierarquia Nível 6 TEXT], 2) = '1/', MID([Hierarquia Nível 6 TEXT], 3), [Hierarquia Nível 6 TEXT]) 		 as [hierarquia_nome_n6]
+Resident bz_hierarquia_d;
+
+											// regra de rehired com base da headcount latest                               
+                                            
+
+LEFT JOIN (headcount_temp_1)
+
+
+The code is loading data from the table "Pessoas" as "pessoa" and calculating the number of rehires for each person by counting the occurrences of "Data Admissão" and subtracting 1 if the count is greater than 1. It then filters the data based on certain conditions, excluding specific values for the fields "Situação", "Tipo Funcionário", and "Tipo de Admissão". Finally, it groups the data by "Pessoas" (people).
+LOAD 
+    [Pessoas]                                                             												as pessoa
+    ,if(count([Data Admissão]) > 1, count([Data Admissão]) - 1, 0) 														as qtd_readimissoes
+Resident bz_headcount_latest_f
+where
+1=1 
+AND NOT Match([Situação], '0', 'Z', '9')     // Exclui '0' mudanças de matrícula, 'Z' admissões futuras e '9' matrículas apagadas
+AND NOT Match([Tipo Funcionário], 'Z', 'T')  // Exclui 'Z' aprendizes e 'T' estagiários
+AND NOT Match([Tipo de Admissão], 'T')       // Exclui transferências sem ônus
+GROUP BY Pessoas;
+
+
+
+
+
+
+
+											// cria tabela para abter a seção nome que so existe na latest
+                                            // como a seção text vem de uma tabela onde so existe o dado mais recente, a seção pode ser inexistente se nenhum funcionário estiver associado a ela.
+                                            
+                                         
+                                         
+                                         
+
+
+The above code is performing a LEFT JOIN operation in QlikView. It is loading distinct values from the fields [Seção] and [Seção TEXT] from the table 'bz_headcount_latest_f' into a new table named 'headcount_temp_1'. The WHERE clause filters out any rows where the [Seção TEXT] field is null. This code is useful for creating a new table with unique values from the specified fields while excluding any rows with null values in the [Seção TEXT] field.
+LEFT JOIN (headcount_temp_1)
+LOAD Distinct
+    [Seção] 																											as secao_cod,
+    [Seção TEXT] 																										as secao_nome
+Resident bz_headcount_latest_f
+
+WHERE NOT  IsNull( [Seção TEXT] );
+
+
+
+
+
+											// cria tabela para obter o sindicato
+                                    		// esta tabela traz somente o dado o dado mais recente ( nao faz sentido ser nessa arquitetura )
+
+
+
+
+
+The code snippet provided is performing a LEFT JOIN operation in QlikView. It is loading distinct values from the fields [Funcionário], [Sindicato], and [Sindicato TEXT] from the table 'bz_headcount_latest_f'. The JOIN is being done with a temporary table named 'headcount_temp_1' based on the field [Sindicato TEXT] to retrieve additional information.
+
+LEFT JOIN (headcount_temp_1)
+LOAD Distinct
+     [Funcionário]                                                                                                      as chapa
+    ,[Sindicato] 																										as sindicato
+    ,[Sindicato TEXT] 																									as sindicato_nome
+Resident bz_headcount_latest_f
+
+WHERE NOT  IsNull( [Sindicato TEXT] );
+
+											// cria tabela para obter o pis pasep e quantidade de dependentes
+                                    		// esta tabela traz somente o dado o dado mais recente ( nao faz sentido ser nessa arquitetura )
+
+The code is performing a LEFT JOIN operation by loading distinct columns 'chapa', 'pispasep', and the sum of 'dependent' columns from the table 'headcount_temp_1'. It is then filtering out records where the 'Situação' column is not equal to '9' from the table 'bz_headcount_latest_f'. This code is likely part of a script to merge and filter data from different tables based on specific conditions.
+LEFT JOIN (headcount_temp_1)
+LOAD Distinct
+	 [Funcionário] 											                                                           as chapa
+    ,[Número PIS/PASE]																								   as pispasep
+    ,[Número de Dependentes no IRRF]+[N. Depentendetes Salário Familia]												   as dependentes
+        
+Resident bz_headcount_latest_f
+WHERE [Situação] <> '9' //matrículas apagadas da base do RM
+;
+
+											// cria tabela para obter funcao                                  
+                                            		
+
+
+The code provided is a script in QlikViews script language for loading and transforming data from a table named `bz_excel_funcao_d`.
+LEFT JOIN (headcount_temp_1)
+LOAD Distinct
+	
+     RIGHT('00000' & KEEPCHAR([Cargo], '0123456789'), 5) 																as funcao_cod
+//     ,SubField([Cargo], ' - ', 2) 																				    as funcao_nome
+    ,IF([Carreira] = '1-Gestão' OR [Grupo Relatório] = '5 - Especialista', 'Líder', 'Não Líder')						as lider_flag
+    ,IF(Match(SubField(Capitalize([Grupo de Cargo 2]), ' - ', 2), 'Operacional','Técnico')
+    , 'Operacional', 'Não Operacional')																					as operacional_flag
+    ,[Carreira]												                                                			as carreira
+    ,SubField(Capitalize([Grupo de Cargo]), ' - ', 2)																	as grupo_cargo
+    ,SubField(Capitalize([Grupo de Cargo 2]), ' - ', 2) 																as grupo_cargo_micro
+    ,[Grupo Relatório]																									as grupo_relatorio
+    ,GS																										    		as gs
+    ,UPPER("Tabela Salarial")																							as cargo_salarial_tipo    
+    ,[CBO 
+2002]																													as cbo_2002
+    ,[Descrição CBO]																						    		as cbo_descricao
+
+Resident bz_excel_funcao_d;
+
+  											
+
+
+
+											// cria a headcount temp 2 para adicionar regras de negocio que tem dependencia de mais de uma tabela
+
+
+
+
+
+headcount_temp_2:
+
+
+The above code is loading data from the table `headcount_temp_1` and performing the following transformations:
+Load
+
+*
+
+,Alt(qtd_readimissoes, 0)      																							           as qtd_readimissoes_new
+,Alt(pessoa,chapa)																						                           as pessoa_new
+,AutoNumberHash128(UPPER(
+    	IF(
+        	WILDMATCH( Num([coligada_cod]) & Num([filial_cod]) & Upper([cargo_salarial_tipo]) & num([gs])
+            				, '*ALL*')
+                           	, [cargo_salarial_tipo] & Num([gs])
+                            , Num([coligada_cod]) & Num([filial_cod]) & Upper([cargo_salarial_tipo]) & Num([gs]))) )               as range_salario_key
+
+
+RESIDENT headcount_temp_1;
+
+Drop Field qtd_readimissoes, pessoa;
+
+Drop Table headcount_temp_1;
+
+												// cria tabela para obter range de salario
+                                                    
+                                                    
+                                                    
+
+The code snippet provided is loading data from the table `bz_excel_range_salario_d` and performing a LEFT JOIN operation with another table named `headcount_temp_2`. The fields being loaded from `bz_excel_range_salario_d` include a calculated field `range_salario_key` which is a concatenation of various fields, as well as fields named `80`, `90`, `100`, `110`, and `120` which seem to represent salary ranges. The loaded data is then used for further analysis or reporting related to headcount KPIs.
+LEFT JOIN (headcount_temp_2)
+LOAD
+	
+	 AutoNumberHash128( Num([CÓD. FILIAL]) & Num([CÓD. EMPRESA]) & Upper([TIPO CARGO]) & Num([GS]) )                    as range_salario_key
+    ,NUM([0.8], '#.##0,00')																								as 80
+    ,NUM([0.9], '#.##0,00')																								as 90
+    ,NUM([1], '#.##0,00')																								as 100
+    ,NUM([1.1000000000000001], '#.##0,00')																				as 110
+    ,NUM([1.2], '#.##0,00')																								as 120
+Resident bz_excel_range_salario_d;
+
+											// headcount KPI final
+
+
+
+
+The code is performing a LEFT JOIN operation by loading distinct values from the columns coligada_cod, filial_cod, and filial_nome from the table headcount_temp_2 and joining them with the table bz_excel_filial_d using the Resident keyword. The LEFT JOIN operation will retain all records from the left table (headcount_temp_2) and matching records from the right table (bz_excel_filial_d) based on the specified columns.
+LEFT JOIN (headcount_temp_2)
+LOAD Distinct
+ coligada_cod
+,filial_cod
+,filial_nome
+Resident bz_excel_filial_d;
+
+
+
+
+The code is a script that calculates the position of an employees salary within a certain range. It divides the salary by 100 and then checks which range the result falls into. The ranges are categorized as follows:
+- Less than 80%: 'Menor 80%'
+- Between 80% and 90%: 'Entre 80% e 90%'
+- Between 90% and 100%: 'Entre 90% e 100%'
+- Between 100% and 110%: 'Entre 100% e 110%'
+- Between 110% and
+sv_headcount_f:
+LOAD 
+
+*    
+
+,NUM(salario/ [100], '#,##%')		           										       						        as posic_fs
+,IF(NUM( salario / [100] ) < 0.8, 'Menor 80%',
+  IF(NUM( salario / [100] ) < 0.9, 'Entre 80% e 90%',
+    IF(NUM( salario / [100] ) < 1, 'Entre 90% e 100%',
+      IF(NUM( salario / [100] ) < 1.1, 'Entre 100% e 110%',
+        IF(NUM( salario / [100] ) <= 1.2, 'Entre 110% até 120%',
+           'Acima 120%'
+        )
+      )
+    )
+  )
+) 																														as agrup_fs
+The code is selecting and transforming data from a table or dataset. It is creating new columns based on existing data.
+ Specifically, it is checking if the value in the column `qtd_readimissoes_new` is greater than or equal to 1, and if so, assigning 'Sim' (meaning 'Yes'), otherwise assigning 'Não' (meaning 'No') to a new column named `readimitido`. It is also selecting the columns `qtd_readimissoes` and `pessoa_new` without any transformation. Additionally, there are commented out lines that seem
+// ,'REMOVER' 																												as advertencias
+// ,'REMOVER' 																												as advertencias_total
+// ,'REMOVER' 																												as advertencias_motivo
+// ,'REMOVER' 																												as advertencias_punicao
+// ,'REMOVER' 																												as advertencias_tipo
+// ,'REMOVER' 																												as advertencias_data
+,if(qtd_readimissoes_new >= 1, 'Sim', 'Não')                                                    					    as readimitido  	
+,qtd_readimissoes_new 																									as qtd_readimissoes
+,pessoa_new 																											as pessoa
+
+The code snippet provided is using nested IF statements to determine the value of the field `[gestor_direto_nome]`. It checks if the value of `[hierarquia_cod_n6]`, `[hierarquia_cod_n5]`, `[hierarquia_cod_n4]`, `[hierarquia_cod_n3]`, `[hierarquia_cod_n2]`, or `[hierarquia_cod_n1]` is not equal to the value of `[chapa]` and not equal to `#`, and if so, assigns the corresponding `[h
+,IF(
+        [hierarquia_cod_n6] <> [chapa] AND [hierarquia_cod_n6] <> '#',
+        [hierarquia_nome_n6],
+        IF(
+            [hierarquia_cod_n5] <> [chapa] AND [hierarquia_cod_n5] <> '#',
+            [hierarquia_nome_n5],
+            IF(
+                [hierarquia_cod_n4] <> [chapa] AND [hierarquia_cod_n4] <> '#',
+                [hierarquia_nome_n4],
+                IF(
+                    [hierarquia_cod_n3] <> [chapa] AND [hierarquia_cod_n3] <> '#',
+                    [hierarquia_nome_n3],
+                    IF(
+                        [hierarquia_cod_n2] <> [chapa] AND [hierarquia_cod_n2] <> '#',
+                        [hierarquia_nome_n2],
+                        IF(
+                            [hierarquia_cod_n1] <> [chapa] AND [hierarquia_cod_n1] <> '#',
+                            [hierarquia_nome_n1]
+                        )
+                    )
+                )
+            )
+        )
+    )  AS [gestor_direto_nome]
+The code is checking multiple conditions using nested IF statements to determine the value of the field [gestor_direto_cod]. It checks if each level of hierarchy ([hierarquia_cod_n6] to [hierarquia_cod_n1]) is not equal to the value of [chapa] and not equal to '#'. If a level meets these conditions, it assigns the value of that level to [gestor_direto_cod]. The code prioritizes the higher levels of hierarchy over the lower levels when assigning the value.
+,IF(
+        [hierarquia_cod_n6] <> [chapa] AND [hierarquia_cod_n6] <> '#',
+        [hierarquia_cod_n6],
+        IF(
+            [hierarquia_cod_n5] <> [chapa] AND [hierarquia_cod_n5] <> '#',
+            [hierarquia_cod_n5],
+            IF(
+                [hierarquia_cod_n4] <> [chapa] AND [hierarquia_cod_n4] <> '#',
+                [hierarquia_cod_n4],
+                IF(
+                    [hierarquia_cod_n3] <> [chapa] AND [hierarquia_cod_n3] <> '#',
+                    [hierarquia_cod_n3],
+                    IF(
+                        [hierarquia_cod_n2] <> [chapa] AND [hierarquia_cod_n2] <> '#',
+                        [hierarquia_cod_n2],
+                        IF(
+                            [hierarquia_cod_n1] <> [chapa] AND [hierarquia_cod_n1] <> '#',
+                            [hierarquia_cod_n1]
+                        )
+                    )
+                )
+            )
+        )
+    )  AS [gestor_direto_cod]
+
+The code provided is a script written in QlikViews scripting language for data transformation and manipulation. Here is a breakdown of what the code is doing:
+,IF(situacao_cod = 'A' and headcount_flag_new = 'TRUE' and Num( (Date#([load_date], 'DD.MM.YYYY') - Date#([data_admissao], 'DD.MM.YYYY')) , '#,##') > 1, 'TRUE', 'FALSE') 	as disponivel_flag  
+,If(headcount_flag_new = 'TRUE','Ativo','Inativo')																															as headcount_status
+// ,if(previous(pessoa_new) = pessoa_new
+//     and Previous(centro_de_custo) <> centro_de_custo
+//     ,'TRUE','FALSE')  																											AS mov_in
+,IF(pessoa_new = PEEK('pessoa_new') and [load_date]=Peek('load_date'), PEEK('indice_pessoa') + 1, 1) 	as indice_pessoa
+,IF(chapa = PEEK('chapa') and [load_date]=Peek('load_date'), PEEK('indice_pessoa') + 1, 1) 	            as indice_chapa
+,IF(
+        pessoa_new = peek('pessoa_new') AND funcao_cod = peek('funcao_cod'),
+        peek('data_inicio_posicao'),
+        MonthStart(load_date)
+    ) as data_inicio_posicao,
+    // ÚNICA função: diferença em dias do início da posição ao início de cada load_month
+IF(
+        pessoa_new = peek('pessoa_new') AND funcao_cod = peek('funcao_cod'),
+        peek('tempo_na_posicao_dias') + (Floor(MonthEnd(load_date) - MonthStart(load_date)) + 1),
+        Floor(MonthEnd(load_date) - MonthStart(load_date)) + 1
+    ) as tempo_na_posicao_dias
+
+RESIDENT headcount_temp_2
+
+The code is filtering out duplicates from the data where the load date is between January and June of 2021. It keeps only the first occurrence of each unique combination of 'pessoa_new' and 'load_date' within that time frame. The data is then ordered by 'pessoa_new', 'load_date', and 'data_admissao' in descending order. Finally, the temporary table 'headcount_temp_2' is dropped.
+WHERE not (Year(load_date) = 2021 and Month(load_date) <= 6 and IF(pessoa_new = PEEK('pessoa_new') and [load_date]=Peek('load_date'), PEEK('indice_pessoa') + 1, 1)  > 1)
+//remove somente as duplicatas de jan-jun/2021 e preserva os demais dados
+
+order by pessoa_new, load_date, data_admissao desc
+;
+// Order by pessoa_new, load_date asc;
+
+DROP TABLE headcount_temp_2;
+
+
+// sv_headcount_f:
+// Load
+
+// *
+// ,if(previous(pessoa_new) = pessoa_new
+//     and Previous(centro_de_custo) <> centro_de_custo
+//     ,'TRUE','FALSE')  																											AS mov_out
+// RESIDENT headcount_temp_3
+// Order by pessoa_new, load_date desc;
+
+
+// DROP TABLE headcount_temp_3;
+
+
+The code is storing the data from the table `sv_headcount_f` into a QVD file named `sv_headcount_f.QVD` in the specified location. After storing the data, it drops the table `sv_headcount_f`.
+STORE sv_headcount_f INTO [$(silver_layer)sv_headcount_f.QVD]
+(qvd);
+
+
+DROP TABLE sv_headcount_f ;
+
+
+
+
+///////////////////////////        SV TERMINATION      //////////////////////////////////////////////
+
+
+
+
+The above code is a script written in QlikViews scripting language. 
+It is loading data from a table named "bz_headcount_latest_f" and performing various transformations on the data related to employee terminations.
+TRACE 'sv_termination_f';
+
+termination_temp_1:
+
+Load
+   	Date#([Data Demissão], 'DD.MM.YYYY')     																			as termination_date
+   ,MonthEnd(Date#([Data Demissão], 'DD.MM.YYYY')) 																		as load_date
+   ,[Pessoas] 																											as pessoa
+   ,[Funcionário] 																										as chapa
+   ,[Funcionário TEXT]																									as nome
+   ,[Situação]								 																			as situacao_cod
+   ,[Situação TEXT]																										as situacao_nome
+   ,RIGHT('00000' & [Funções], 5) 																						as funcao_cod
+   ,[Funções TEXT] 																										as funcao_nome
+   ,DATE(DATE#("Data Admissão", 'DD.MM.YYYY'), 'DD.MM.YYYY') 															as data_admissao
+   ,(Date#([Data Demissão], 'DD.MM.YYYY') - Date#([Data Admissão], 'DD.MM.YYYY')) 										as tempo_empresa_dias
+   ,[Tipo de Demissão]																									as demissao_tipo_cod
+   ,[Tipo de Demissão TEXT]																								as demissao_tipo_nome
+   ,[Motivo Demissão]																									as demissao_motivo_cod
+   ,[Motivo Demissão TEXT]																								as demissao_motivo_nome
+   //,APPLYMAP('CLASSIFICAÇÃO_MAP',[Tipo de Demissão],'Outro')															as demissao_classificação
+   ,If(Match([Tipo de Demissão],
+    '1', '2', '3', '8', '9', 'A', 'B', 'D', 'N', 'O', 'T', ''), 'Involuntário', 'Voluntário')                           as demissao_classificacao
+   ,[Tipo Funcionário] 												 												    as tipo_funcionario_cod														
+   ,[Tipo Funcionário TEXT]                                                                                             as tipo_funcionario_nome //a base está vindo em branco
+   ,[Seção]                                                                                                             as secao_cod
+   ,[Coligadas]                                                                                                         as coligada_cod
+   ,IF(MATCH([Coligadas], ''),NULL(), APPLYMAP('coligada_d',[Coligadas])) 			                                    as coligada_nome
+   ,[Código Filial]                                                                                                     as filial_cod
+//    ,IF(MATCH([Código Filial], ''),NULL(), APPLYMAP('filial_d',[Código Filial]))                                         as filial_nome
+   ,REPLACE([Salário], '.', ',')																					    as salario
+   ,Num(Replace([Jornada Mensal], '.', ','), '#.##0,00')                            								    as jornada_mensal
+   ,[Horários: Escala TEXT]																							    as escala
+  
+// a regra de new hire e contratação tipo é a mesma, diferencia true or false no resultado para que seja montada a dimensao na proxima camada
+
+    ,IF(Num( (Date#([Data Demissão], 'DD.MM.YYYY') - Date#([Data Admissão], 'DD.MM.YYYY')) / 365.25, '#,##') 
+    < 1,
+    'Novo Contratado', 'Não Novo Contratado')																			as contratacao_tipo
+    
+    ,IF(Num( (Date#([Data Demissão], 'DD.MM.YYYY') - Date#([Data Admissão], 'DD.MM.YYYY')) / 365.25, '#,##') 
+    < 1,
+    'TRUE', 'FALSE')                        																			as new_hire_flag
+
+
+// a regra de admitido é para que seja destacado os funcionarios que foram admitidos no mes
+
+   ,IF( Date(MonthEnd(Date#([Data Admissão], 'DD.MM.YYYY'))) = Date(MonthEnd(Date#([Data Demissão], 'DD.MM.YYYY'))),
+    'TRUE', 'FALSE') 																									as admitido_flag
+
+
+
+// a regra de admitidos até 3 meses
+
+
+   ,IF(Num( (Date#([Data Demissão], 'DD.MM.YYYY') - Date#([Data Admissão], 'DD.MM.YYYY')) / 365.25, '#,##')  <= 0.25,
+    'TRUE',
+    'FALSE'
+) 																														as admitido_flag_3meses
+
+   ,IF( 
+   		  NOT Match([Tipo Funcionário], 'C', 'S', 'T', 'U', 'Z') 
+          // C - CONSELHEIRO, 
+          // S - PENSIONISTA, 
+          // T - ESTAGIÁRIO, 
+          // U - OUTROS, 
+          // Z - APRENDIZ
+          
+     AND  NOT Match([Tipo de Demissão], '5'
+     //, '8' removido 
+     , 'A', 'D', 'E', 'F', 'I', 'J', 'P', 'R', 'S', 'U') 
+
+ // 5	Transferência sem ônus p/ Cedente, 
+ // 8	Falecimento, removido
+ // A	Aposentadoria invalidez (ac. trab.), 
+ // D	Aposentadoria invalidez (doenca)
+ // E	Aposentadoria especial, 
+ // F	Falecimento p/ acidente de trabalho, 
+ // I	Apos. p/ Idade com resc. contrato, 
+ // J	Apos. p/ Idade sem resc. contrato
+ // P	Falecimento p/ doenca profissional, 
+ // R	Apos. Tempo Serv. c/ Resc. Contrato, 
+ // S	Apos tempo servico sem resc.contrato, 
+ // U	Aposentadoria Compulsória
+ ,'TRUE'
+ ,'FALSE' )																												as turnover_flag
+
+
+
+
+   
+
+Resident bz_headcount_latest_f
+WHERE 
+1=1
+AND [Situação] = 'D' //Demitido
+AND [Tipo de Demissão] <> '5' // Recontratação
+; 
+
+
+
+The above code is performing a LEFT JOIN operation by loading data from the table "termination_temp_1" and selecting specific fields using the FirstSortedValue function. The selected fields include "Funcionário" as "chapa", "[Cor e Raça]" as "raca_cod", "[Cor e Raça TEXT]" as "raca_nome", "DATE(DATE#("Data de Nascimento", 'DD.MM.YYYY'), 'DD.MM.YYYY')" as "nascimento_data", "Cota PCD" as "cota_pcd", and "Horários: Escala"
+LEFT JOIN (termination_temp_1)
+LOAD
+     Funcionário                                                        												 as chapa // Campo de ligação
+    ,FirstSortedValue([Cor e Raça], -NUM(DATE(DATE#("Dia do calendário", 'DD.MM.YYYY'), 'DD.MM.YYYY') ))                 as raca_cod 
+    ,FirstSortedValue([Cor e Raça TEXT], -NUM(DATE(DATE#("Dia do calendário", 'DD.MM.YYYY'), 'DD.MM.YYYY') ))            as raca_nome
+    ,FirstSortedValue(DATE(DATE#("Data de Nascimento", 'DD.MM.YYYY'), 'DD.MM.YYYY'), -NUM(DATE(DATE#("Dia do calendário", 'DD.MM.YYYY'), 'DD.MM.YYYY') ))   as nascimento_data
+    ,FirstSortedValue("Cota PCD", -NUM(DATE(DATE#("Dia do calendário", 'DD.MM.YYYY'), 'DD.MM.YYYY') ))                   as cota_pcd
+    ,FirstSortedValue("Horários: Escala TEXT", -NUM(DATE(DATE#("Dia do calendário", 'DD.MM.YYYY'), 'DD.MM.YYYY') ))      as escala
+    
+Resident bz_headcount_and_short_tenure_and_offshore_f
+
+The above code snippet appears to be a partial script for loading and joining data from a source related to employee termination. Here is a breakdown of the code:
+GROUP BY Funcionário
+;
+
+												// adiciona dados de pessoa
+                                                                 
+
+LEFT JOIN (termination_temp_1)
+LOAD Distinct
+     [Pessoas]                                                                                                         as pessoa
+    ,[CPF RM]                                                                                                          as cpf
+    ,[Carteira de Identidade]                                                                                          as rg
+    ,[Carteira de Motorista]                     																	   as cnh_cod
+    ,[Tipo da Carteira de Habilitação]                                                                                 as cnh_tipo
+    ,[Data Vencimento da CNH]                                                                                          as cnh_vencimento
+    ,[Estado]																									       as estado
+    ,[Estado Civil]  																								   as estado_civil_cod
+    ,[Estado Civil TEXT]																							   as estado_civil_nome
+    ,[Nacionalidade]  																								   as nacionalidade                                                                                                                                                                
+    ,[Naturalidade] 																								   as naturalidade                                                                                                         
+    ,[Rua]                                            																   as rua
+    ,[Número]																										   as numero
+    ,[Complemento]                                                                                                     as complemento
+    ,[Bairro]																										   as bairro
+    ,[Cidade]                                                                                                          as cidade
+    ,[Pais] 																										   as pais
+    ,[CEP]																											   as cep
+    ,[Telefone 1]                                                                                                      as telefone
+    ,IF([Sexo] = 'M', 'Masculino',
+	 IF([Sexo] = 'F', 'Feminino',
+					  'Não informado')) 																			   as genero
+        
+Resident bz_pessoa_d
+;
+The code snippet provided is performing a LEFT JOIN operation to add hierarchy data to a table named `termination_temp_1`. It is loading distinct data from the table `bz_hierarquia_d` and renaming some columns while also removing the text '1/' from certain fields if it is present. The loaded data includes employee ID (`chapa`), email address (`email`), and hierarchical levels 1 to 6 with both code and name fields for each level. The code seems to be preparing and enhancing the data related to hierarchy for further analysis or processing.
+
+													// adiciona dados de hierarquia
+
+
+
+
+LEFT JOIN (termination_temp_1)
+
+LOAD Distinct
+	Funcionário																											 as chapa
+    ,IF(TRIM("Endereço Internet Mail")= '', 'Nenhum Registro Encontrado', "Endereço Internet Mail") 				     as email												
+    
+    // Remove o texto '1/' dos campos caso esteja presente
+    ,[Hierarquia Nível 1]                                                                                                as hierarquia_cod_n1
+    ,IF(LEFT([Hierarquia Nível 1 TEXT], 2) = '1/', MID([Hierarquia Nível 1 TEXT], 3), [Hierarquia Nível 1 TEXT])		 as hierarquia_nome_n1
+    
+    ,[Hierarquia Nível 2]                                                                                                as hierarquia_cod_n2
+    ,IF(LEFT([Hierarquia Nível 2 TEXT], 2) = '1/', MID([Hierarquia Nível 2 TEXT], 3), [Hierarquia Nível 2 TEXT]) 		 as hierarquia_nome_n2
+    
+    ,[Hierarquia Nível 3]                                                                                                as hierarquia_cod_n3
+    ,IF(LEFT([Hierarquia Nível 3 TEXT], 2) = '1/', MID([Hierarquia Nível 3 TEXT], 3), [Hierarquia Nível 3 TEXT]) 		 as hierarquia_nome_n3
+    
+    ,[Hierarquia Nível 4]                                                                                                as hierarquia_cod_n4
+    ,IF(LEFT([Hierarquia Nível 4 TEXT], 2) = '1/', MID([Hierarquia Nível 4 TEXT], 3), [Hierarquia Nível 4 TEXT]) 		 as hierarquia_nome_n4
+    
+    ,[Hierarquia Nível 5]                                                                                                as hierarquia_cod_n5
+    ,IF(LEFT([Hierarquia Nível 5 TEXT], 2) = '1/', MID([Hierarquia Nível 5 TEXT], 3), [Hierarquia Nível 5 TEXT]) 		 as hierarquia_nome_n5
+    
+    ,[Hierarquia Nível 6]                                                                                                as hierarquia_cod_n6
+    ,IF(LEFT([Hierarquia Nível 6 TEXT], 2) = '1/', MID([Hierarquia Nível 6 TEXT], 3), [Hierarquia Nível 6 TEXT]) 		 as hierarquia_nome_n6
+    
+Resident bz_hierarquia_d
+;
+
+
+
+
+
+
+
+
+								// readmitidos 
+
+
+
+LEFT JOIN (termination_temp_1)
+LOAD 
+    [Pessoas]                                                             												as pessoa
+    ,if(count([Data Admissão]) > 1, count([Data Admissão]) - 1, 0) 														as qtd_readimissoes
+Resident bz_headcount_latest_f
+
+WHERE 
+1=1 
+AND NOT Match([Situação], '0', 'Z', '9')     // Exclui '0' mudanças de matrícula, 'Z' admissões futuras e '9' matrículas apagadas
+AND NOT Match([Tipo Funcionário], 'Z', 'T')  // Exclui 'Z' aprendizes e 'T' estagiários
+AND NOT Match([Tipo de Admissão], 'T')       // Exclui transferências sem ônus
+GROUP BY Pessoas;
+
+
+											// cria tabela para abter a seção nome que so existe na latest
+                                            // como a seção text vem de uma tabela onde so existe o dado mais recente, a seção pode ser inexistente se nenhum funcionário estiver associado a ela.
+                                        
+
+LEFT JOIN (termination_temp_1)
+LOAD Distinct
+    [Seção] 																											as secao_cod,
+    [Seção TEXT] 																										as secao_nome
+Resident bz_headcount_latest_f
+
+WHERE NOT  IsNull( [Seção TEXT] );
+
+
+							// centro de custo
+
+
+
+LEFT JOIN (termination_temp_1)
+LOAD Distinct
+	 [Funcionário] 											                                                           as chapa
+    ,MID([Centro de Custo], 3)																						   as centro_de_custo
+    ,MID([Centro de Custo TEXT], 3)																					   as centro_de_custo_nome
+        
+Resident bz_headcount_latest_f
+;
+
+
+
+
+							// hierarquia
+
+
+
+
+LEFT JOIN (termination_temp_1)
+LOAD Distinct
+//     [Centro Custo]  																                                    as centro_de_custo
+// //     ,IF(MATCH([Dir.], 'Dir. Planejamento Estratégico'), NULL(), [Dir.]) 												as diretoria
+//     ,[Dir.]																												as diretoria
+
+//     ,IF([Área] = '-', NULL(), [Área]) 																					as area
+// //     ,IF(
+// //     	MATCH(IF(MATCH([Dir.], 'Dir. Planejamento Estratégico'), NULL()
+// //         , [Dir.]), '')
+// //         ,NULL()
+// //         , APPLYMAP('DIRETORIA_MAP',IF(MATCH([Dir.], 'Dir. Planejamento Estratégico')
+// //         , NULL(), [Dir.])))																								as grupo_diretoria   
+//     ,[Grupo Diretoria]																									as grupo_diretoria
+*
+Resident centro_de_custo;
+
+
+
+
+
+											// cria tabela para obter funcao
+                                            
+                                            		
+                                                    
+                                    
+
+
+LEFT JOIN (termination_temp_1)
+LOAD Distinct
+	
+    RIGHT('00000' & KEEPCHAR([Cargo], '0123456789'), 5) 																as funcao_cod
+    ,IF([Carreira] = '1-GESTÃO' OR [Grupo Relatório] = '5- ESPECIALISTA', 'Líder', 'Não Líder')							as lider_flag
+    ,IF([Grupo Relatório] = '8 - Demais', 'Operacional', 'Não Operacional')												as operacional_flag
+    ,[Carreira]												                                                			as carreira
+    ,SubField(Capitalize([Grupo de Cargo]), ' - ', 2)																	as grupo_cargo
+    ,SubField(Capitalize([Grupo de Cargo 2]), ' - ', 2) 																as grupo_cargo_micro
+    ,[Grupo Relatório]																									as grupo_relatorio
+    ,GS																										    		as gs
+    ,UPPER("Tabela Salarial")																							as cargo_salarial_tipo    
+    ,[CBO 
+2002]																													as cbo_2002
+    ,[Descrição CBO]																						    		as cbo_descricao
+
+Resident bz_excel_funcao_d
+;
+
+
+
+
+
+											// cria a headcount temp 2 para adicionar regras de negocio que tem dependencia de mais de uma tabela
+
+
+
+
+
+termination_temp_2:
+
+Load
+
+*
+
+,Floor((Today() - Date#(nascimento_data, 'DD.MM.YYYY')) / 365.25) 											    					as idade
+,IF(
+            Floor(( Date(Date#(nascimento_data, 'DD.MM.YYYY'), 'DD.MM.YYYY') 
+            	       - Date#(nascimento_data, 'DD.MM.YYYY') ) / 365.25) <= 30,  			'Até 30 anos',
+            IF(
+                Floor(( Date(Date#(nascimento_data, 'DD.MM.YYYY'), 'DD.MM.YYYY') 
+                		   - Date#(nascimento_data, 'DD.MM.YYYY') ) / 365.25) > 50,    	'Acima de 50 anos',
+                																				
+                                                                                                'De 31 a 50 anos')
+         )																											    		   as idade_grupo
+
+,Alt(qtd_readimissoes, 0)      																							           as qtd_readimissoes_new
+,AutoNumberHash128(UPPER(
+    	IF(
+        	WILDMATCH( Num([coligada_cod]) & Num([filial_cod]) & Upper([cargo_salarial_tipo]) & num([gs])
+            				, '*ALL*')
+                           	, [cargo_salarial_tipo] & Num([gs])
+                            , Num([coligada_cod]) & Num([filial_cod]) & Upper([cargo_salarial_tipo]) & Num([gs]))) )               as range_salario_key
+
+
+RESIDENT termination_temp_1;
+
+Drop Field qtd_readimissoes;
+
+Drop Table termination_temp_1;
+
+
+
+
+
+												// cria tabela para obter range de salario
+                                                    
+                                                    
+                                                    
+
+LEFT JOIN (termination_temp_2)
+LOAD
+	
+	 AutoNumberHash128( Num([CÓD. FILIAL]) & Num([CÓD. EMPRESA]) & Upper([TIPO CARGO]) & Num([GS]) )                    as range_salario_key
+    ,NUM([0.8], '#.##0,00')																								as 80
+    ,NUM([0.9], '#.##0,00')																								as 90
+    ,NUM([1], '#.##0,00')																								as 100
+    ,NUM([1.1000000000000001], '#.##0,00')																				as 110
+    ,NUM([1.2], '#.##0,00')																								as 120
+    
+Resident bz_excel_range_salario_d
+;
+
+
+
+
+
+
+LEFT JOIN (termination_temp_2)
+LOAD Distinct
+ coligada_cod
+,filial_cod
+,filial_nome
+Resident bz_excel_filial_d;
+
+                                            
+
+
+
+
+											// headcount KPI final
+
+
+
+
+sv_termination_f:
+LOAD 
+
+*    
+
+,NUM(salario/ [100], '#,##%')		           										       						        as posic_fs
+,IF(NUM( salario / [100] ) < 0.8, 'Menor 80%',
+  IF(NUM( salario / [100] ) < 0.9, 'Entre 80% e 90%',
+    IF(NUM( salario / [100] ) < 1, 'Entre 90% e 100%',
+      IF(NUM( salario / [100] ) < 1.1, 'Entre 100% e 110%',
+        IF(NUM( salario / [100] ) <= 1.2, 'Entre 110% até 120%',
+           'Acima 120%'
+        )
+      )
+    )
+  )
+) 																														as agrup_fs
+,if(qtd_readimissoes_new >= 1, 'Sim', 'Não')                                                    					    as readimitido  	
+,qtd_readimissoes_new 																									as qtd_readimissoes
+,IF(
+        [hierarquia_cod_n6] <> [chapa] AND [hierarquia_cod_n6] <> '#',
+        [hierarquia_nome_n6],
+        IF(
+            [hierarquia_cod_n5] <> [chapa] AND [hierarquia_cod_n5] <> '#',
+            [hierarquia_nome_n5],
+            IF(
+                [hierarquia_cod_n4] <> [chapa] AND [hierarquia_cod_n4] <> '#',
+                [hierarquia_nome_n4],
+                IF(
+                    [hierarquia_cod_n3] <> [chapa] AND [hierarquia_cod_n3] <> '#',
+                    [hierarquia_nome_n3],
+                    IF(
+                        [hierarquia_cod_n2] <> [chapa] AND [hierarquia_cod_n2] <> '#',
+                        [hierarquia_nome_n2],
+                        IF(
+                            [hierarquia_cod_n1] <> [chapa] AND [hierarquia_cod_n1] <> '#',
+                            [hierarquia_nome_n1]
+                        )
+                    )
+                )
+            )
+        )
+    )  AS [gestor_direto_nome]
+,IF(
+        [hierarquia_cod_n6] <> [chapa] AND [hierarquia_cod_n6] <> '#',
+        [hierarquia_cod_n6],
+        IF(
+            [hierarquia_cod_n5] <> [chapa] AND [hierarquia_cod_n5] <> '#',
+            [hierarquia_cod_n5],
+            IF(
+                [hierarquia_cod_n4] <> [chapa] AND [hierarquia_cod_n4] <> '#',
+                [hierarquia_cod_n4],
+                IF(
+                    [hierarquia_cod_n3] <> [chapa] AND [hierarquia_cod_n3] <> '#',
+                    [hierarquia_cod_n3],
+                    IF(
+                        [hierarquia_cod_n2] <> [chapa] AND [hierarquia_cod_n2] <> '#',
+                        [hierarquia_cod_n2],
+                        IF(
+                            [hierarquia_cod_n1] <> [chapa] AND [hierarquia_cod_n1] <> '#',
+                            [hierarquia_cod_n1]
+                        )
+                    )
+                )
+            )
+        )
+    )  AS [gestor_direto_cod]
+     
+RESIDENT termination_temp_2;
+
+DROP TABLE termination_temp_2;
+
+
+STORE sv_termination_f INTO [$(silver_layer)sv_termination_f.QVD]
+(qvd);
+
+DROP TABLE sv_termination_f;
+
+
+
+
+///////////////////////////        SV EXCEL ORCAMENTO HISTORICO      //////////////////////////////////////////////
+
+
+
+
+
+sv_excel_hc_orcamento_historico_f:
+Load
+coligada_cod
+,filial_cod
+,centro_de_custo_cod
+,funcao_cod
+,Valor
+,Date( load_date, 'DD.MM.YYYY') 	as load_date
+resident bz_excel_hc_orcamento_historico_f;
+
+STORE sv_excel_hc_orcamento_historico_f INTO [$(silver_layer)sv_excel_hc_orcamento_historico_f.QVD]
+(qvd);
+
+DROP TABLE sv_excel_hc_orcamento_historico_f;
+
+
+
+///////////////////////////        PRE POSICOES      //////////////////////////////////////////////
+// gera linhas entre a data de abertura e a data de fechamento da vaga
+
+
+
+
+//SET DateFormat='DD/MM/YYYY';
+
+// Normaliza dados e calcula diferença em meses (incluindo casos em andamento)
+Temp_Clean:
+LOAD
+  RP,
+  STATUS,
+  POSICAO,
+  CLASSIFICACAO,
+  EMPRESA,
+  TIPORP1,
+  DTAINICIO,
+  DTAABERTURA,
+  DTACOMITE,
+  RESPONSAVELVAGA,
+  CCUSTO,
+  Date(Date#(DTAABERTURA, 'DD/MM/YYYY')) 														as DTAABERTURA_date,
+  
+ MonthEnd( Date(
+      IF(LEN(Trim(DTAINICIO))=0, Today(), Date#(DTAINICIO, 'DD/MM/YYYY'))
+  )) 																						as DTAINICIO_date,
+  (
+    (Year(Date(IF(LEN(Trim(DTAINICIO))=0, Today(), Date#(DTAINICIO, 'DD/MM/YYYY'))))*12) +
+    Month(Date(IF(LEN(Trim(DTAINICIO))=0, Today(), Date#(DTAINICIO, 'D/M/YYYY'))))
+  )
+  -
+  (
+    (Year(Date(Date#(DTAABERTURA, 'DD/MM/YYYY')))*12) +
+    Month(Date(Date#(DTAABERTURA, 'DD/MM/YYYY')))
+  ) 																						as MonthCount
+RESIDENT bz_excel_posicoes_f;
+
+//  Gera linhas mensais até o fim de andamento 
+Positions_Monthly:
+LOAD
+ *,
+  IF(MonthEnd(ReferenceDate)=DTAINICIO_date, Capitalize( STATUS ), 'Em Andamento') as MonthlyStatus
+;
+LOAD
+  *,
+  MonthEnd(AddMonths(DTAABERTURA_date, IterNo()-1, 1) )												as ReferenceDate
+RESIDENT Temp_Clean
+WHILE IterNo()-1 <= MonthCount AND IterNo() <= 120;
+
+DROP TABLE Temp_Clean;
+
+
+
+
+
+
+///////////////////////////        SV POSICOES      //////////////////////////////////////////////
+
+
+
+
+sv_posicoes_f:
+
+Load
+CCUSTO			 				as centro_de_custo
+,Capitalize([STATUS]) 			as rp_status
+,POSICAO						as funcao_nome
+,RP                             as rp
+,Date#(MonthStart([ReferenceDate]), 'DD.MM.YYYY')      as load_date
+,if( [CLASSIFICACAO] = 'SubstituiÃ§Ã£o','Substituição', Capitalize([CLASSIFICACAO])) 	as rp_classificacao
+,Capitalize(EMPRESA) 																	as rp_empresa_contratado 
+,if(Capitalize(TIPORP1) = null(),'Sem Classificação', Capitalize(TIPORP1) ) 			as rp_tipo 
+,If(WildMatch(Upper(POSICAO), 'APRENDIZ'), 'TRUE', 'FALSE') 						    as aprendiz_flag
+,if( Match(Capitalize([MonthlyStatus]), 'Em Andamento', 'Em Admissão'),'TRUE','FALSE')         as andamento_flag
+
+,IF(UPPER(STATUS)='EM ANDAMENTO',TODAY()-date#(DTAABERTURA,'DD/MM/YYYY'), 
+    Date#(DTAINICIO, 'DD/MM/YYYY')-date#(DTAABERTURA,'DD/MM/YYYY'))                     as tempo_contratacao
+
+,if(IF(UPPER(STATUS)='EM ANDAMENTO',TODAY()-date#(DTAABERTURA,'DD/MM/YYYY'), 
+
+    Date#(DTACOMITE, 'DD/MM/YYYY')-date#(DTAABERTURA,'DD/MM/YYYY')) <0,0,
+
+    IF(UPPER(STATUS)='EM ANDAMENTO',TODAY()-date#(DTAABERTURA,'DD/MM/YYYY'), 
+
+    Date#(DTACOMITE, 'DD/MM/YYYY')-date#(DTAABERTURA,'DD/MM/YYYY')))            		as tempo_recrutamento
+
+
+,if(IF(UPPER(STATUS)='EM ANDAMENTO',TODAY()-date#(DTAABERTURA,'DD/MM/YYYY'), 
+    Date#(DTAINICIO, 'DD/MM/YYYY')-date#(DTAABERTURA,'DD/MM/YYYY')) <0, 0, 
+    IF(UPPER(STATUS)='EM ANDAMENTO',TODAY()-date#(DTAABERTURA,'DD/MM/YYYY'), 
+    Date#(DTAINICIO, 'DD/MM/YYYY')-date#(DTAABERTURA,'DD/MM/YYYY')))
+    -
+    if(IF(UPPER(STATUS)='EM ANDAMENTO',TODAY()-date#(DTAABERTURA,'DD/MM/YYYY'), 
+    Date#(DTACOMITE, 'DD/MM/YYYY')-date#(DTAABERTURA,'DD/MM/YYYY')) < 0, 0,
+    IF(UPPER(STATUS)='EM ANDAMENTO',TODAY()-date#(DTAABERTURA,'DD/MM/YYYY'), 
+    Date#(DTACOMITE, 'DD/MM/YYYY')-date#(DTAABERTURA,'DD/MM/YYYY')))
+   																						 as tempo_admissao 
+
+
+Resident  Positions_Monthly   //bz_excel_posicoes_f
+
+
+Where
+      WildMatch(Upper(POSICAO), '*APRENDIZ*',	'*ESTAG*') = 0
+and   WildMatch(Upper(RESPONSAVELVAGA), '*NAO DEFINIDO*') = 0   
+    ;
+
+drop table Positions_Monthly;
+
+
+
+Left join (sv_posicoes_f)
+Load Distinct
+    [Funções TEXT] as funcao_nome,
+    Max(RIGHT('00000' & [Funções], 5)) as funcao_cod
+Resident bz_headcount_latest_f
+Group By [Funções TEXT];
+
+
+STORE sv_posicoes_f INTO [$(silver_layer)sv_posicoes_f.QVD]
+(qvd);
+
+
+
+///////////////////////////        DROP RAW      //////////////////////////////////////////////
+
+
+//      FATOS
+
+Drop Table
+ bz_headcount_f
+,bz_headcount_latest_f
+// ,bz_salario_f
+// ,bz_eventos_f
+,bz_excel_hc_orcamento_historico_f
+,bz_posicoes_f
+,bz_headcount_and_short_tenure_and_offshore_f
+
+
+
+//       DIMENSÕES     
+
+
+
+, bz_excel_estrutura_cc_d
+,bz_pessoa_d
+,bz_hierarquia_d
+,bz_hierarquia_d
+,bz_excel_funcao_d
+,bz_excel_range_salario_d
+,bz_excel_range_salario_d
+,bz_excel_filial_d
+,bz_externo_centro_custo_d
+,centro_de_custo
+,funcao
+;
+
+Exit Script;

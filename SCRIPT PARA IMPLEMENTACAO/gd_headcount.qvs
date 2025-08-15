@@ -1,0 +1,920 @@
+
+
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$#.##0,00;-R$#.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD.MM.YYYY';
+SET TimestampFormat='DD.MM.YYYY hh:mm:ss[.fff]';
+SET FirstWeekDay=6;
+SET BrokenWeeks=1;
+SET ReferenceDay=0;
+SET FirstMonthOfYear=1;
+SET CollationLocale='pt-BR';
+SET CreateSearchIndexOnReload=1;
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET LongMonthNames='janeiro;fevereiro;março;abril;maio;junho;julho;agosto;setembro;outubro;novembro;dezembro';
+SET DayNames='seg;ter;qua;qui;sex;sáb;dom';
+SET LongDayNames='segunda-feira;terça-feira;quarta-feira;quinta-feira;sexta-feira;sábado;domingo';
+SET NumericalAbbreviation='3:k;6:M;9:G;12:T;15:P;18:E;21:Z;24:Y;-3:m;-6:μ;-9:n;-12:p;-15:f;-18:a;-21:z;-24:y';
+
+//SET silver_layer = '\\BRSPOWVQDEV01\QlikSharedFolder\CustomData\Eldorado Brasil\3. Recursos Humanos\People Analytics\01. HR Medallion\02. Silver\';
+//SET gold_layer = '\\BRSPOWVQDEV01\QlikSharedFolder\CustomData\Eldorado Brasil\3. Recursos Humanos\People Analytics\01. HR Medallion\03. Gold\';
+
+
+SET bronze_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/01. Bronze/';
+SET silver_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/02. Silver/';
+SET gold_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/03. Gold/';
+SET manual_source = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/02. Manual Source/';
+SET ti_layer = 'lib://Staging Recursos Humanos/';
+SET external_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/04. Fontes Externas/';
+
+
+
+///////////////////////////        CREATE CALENDARIO      //////////////////////////////////////////////
+
+
+Let vDataInicio = '2014-01-01';
+Let vDataFim = Date(MakeDate(Year(Today()), 12, 31), 'YYYY-MM-DD');
+
+gd_calendario_d:
+Load
+    Date(TempDate, 'DD.MM.YYYY')  																						as date_key,
+    Date(Floor(MonthEnd(TempDate)), 'DD.MM.YYYY') 																		as load_month,
+    Year(TempDate) 																										as ano,
+    Num(Month(TempDate)) 																								as mes_numero,
+    Month(TempDate) 																								    as mes_nome,
+    Day(TempDate) 																										as dia,
+    Week(TempDate)																										as semana_ano,
+    Num(Weekday(TempDate)) 																								as dia_semana_numero,
+    Date(TempDate, 'WWW') 																								as dia_semana_nome,
+    Month(TempDate) & ' - ' &  Year(TempDate) 																			as ano_mes,   //Date(MonthStart(TempDate), 'YYYY-MM')
+    If(MonthStart(TempDate) = MonthStart(Today()), 'Sim', 'Não') 														as mes_atual,
+    If(YearStart(TempDate) = YearStart(Today()), 'Sim', 'Não') 															as ano_atual,
+    Date(TempDate, 'YYYY-Q') 																							as ano_trimestre,
+    Dual('Sem ' & Week(TempDate) & ' ' & Year(TempDate), WeekStart(TempDate)) 											as ano_semana,
+    If(TempDate <= Today(), 'Historico', 'Futuro') 																		as periodo_status,
+    If(TempDate = Today(), 'Sim', 'Não') 																				as hoje,
+    If(TempDate = Today() - 1, 'Sim', 'Não') 																			as ontem,
+    If(TempDate = Today() + 1, 'Sim', 'Não') 																			as amanha,
+    If(WeekDay(TempDate) >= 6, 'Sim', 'Não') 																			as final_semana,
+    NetworkDays(TempDate, TempDate) 																					as dia_util,
+    Ceil(Month(TempDate)/3) 																							as trimestre_fiscal,
+    Ceil(Month(TempDate)/6)                                                                                             as semestre,
+    'S' & Ceil(Month(TempDate)/6) & ' - ' & Year(TempDate)                                                              as ano_semestre
+
+;
+Load
+    TempDate
+Where
+    TempDate >= Date('$(vDataInicio)') and TempDate <= Date('$(vDataFim)');
+
+
+Load
+    MakeDate(2014,1,1) + IterNo() - 1 as TempDate
+AutoGenerate 1
+While IterNo() <= (Date('$(vDataFim)') - Date('$(vDataInicio)') + 1); 
+
+
+STORE gd_calendario_d INTO [$(gold_layer)gd_calendario_d.QVD]
+(qvd);
+
+
+
+///////////////////////////        CREATE TIME IN COMPANY      //////////////////////////////////////////////
+
+Let vDiasMax = 365.25 * 30; // Define 30 anos como exemplo
+
+gd_tempo_companhia_d:
+Load
+    RowNo() as tempo_empresa_key,
+    
+    // Grupo Gerencial (Anos Agrupados)
+    If(
+        RowNo() <= 365.25 * 3,
+        'Ano ' & Ceil(RowNo() / 365.25),
+        If(
+            RowNo() <= 365.25 * 10,
+            'Ano ' & 
+            (3 + Floor((RowNo() - 365.25 * 3) / (365.25 * 2)) * 2) & '-' & 
+            (3 + Ceil((RowNo() - 365.25 * 3) / (365.25 * 2)) * 2),
+            If(
+                RowNo() <= 365.25 * 15,
+                'Ano ' & 
+                (10 + Floor((RowNo() - 365.25 * 10) / (365.25 * 5)) * 5) & '-' & 
+                (10 + Ceil((RowNo() - 365.25 * 10) / (365.25 * 5)) * 5),
+                'Mais que 15 anos'
+            )
+        )
+    ) as grupo_gerencial,
+    
+    // Grupo Operacional (Meses/Anos)
+    If(
+        RowNo() <= 365.25, // Primeiro ano
+        If(
+            RowNo() <= 365.25 / 4, '0-3 meses',
+            If(
+                RowNo() <= 365.25 / 2, '3-6 meses',
+                //If(
+                  // RowNo() <= 365.25 * 0.75, '6-9 meses',
+                    '9-12 meses'
+                //)
+            )
+        ),
+        If(
+            RowNo() <= 365.25 * 4, // Até 4 anos
+            'Ano ' & Ceil(RowNo() / 365.25) & ' - ' &
+            Num(Floor((RowNo() - 365.25) / 182.625) * 6 + 12, '#0') & '-' &
+            Num(Floor((RowNo() - 365.25) / 182.625) * 6 + 18, '#0') & ' meses',
+            'Mais que 4 anos' // Acima de 4 anos
+        )
+    ) as grupo_operacao,
+
+    If(  RowNo() <= 365.25, 'TRUE', 'FALSE')  as new_hire,
+    // Campos numéricos
+    RowNo() as dias_totais,
+    Div(RowNo(), 30) as meses_totais,
+    Div(RowNo(), 365.25) as anos_totais
+AutoGenerate Floor($(vDiasMax));
+
+STORE gd_tempo_companhia_d INTO [$(gold_layer)gd_tempo_companhia_d.QVD] (qvd);
+
+
+
+///////////////////////////        LOAD RAW     //////////////////////////////////////////////
+
+
+
+NoConcatenate
+sv_headcount_f_raw:
+
+Load
+*
+,Hash128(
+	hierarquia_nome_n1,	hierarquia_nome_n2,	hierarquia_nome_n3
+   ,hierarquia_nome_n4,	hierarquia_nome_n5, hierarquia_nome_n6,
+	num(hierarquia_cod_n1),	num(hierarquia_cod_n2),	num(hierarquia_cod_n3)
+   ,num(hierarquia_cod_n4),	num(hierarquia_cod_n5), num(hierarquia_cod_n6)
+   ,gestor_direto_nome,	num(gestor_direto_cod)) 									as hierarquia_sk
+,Hash128(num(funcao_cod)) 															as funcao_sk 
+,Hash128(num(secao_cod)) 													    	as secao_sk
+,Hash128(num(filial_cod), num(coligada_cod))										as eldorado_entity_sk
+,Hash128(num(centro_de_custo)) 														as centro_de_custo_sk																																								
+,Hash128(situacao_cod)                  											as situacao_sk
+,Hash128(tipo_funcionario_cod) 														as tipo_funcionario_sk
+,Hash128(jornada_mensal) 															as jornada_sk
+,Hash128(contratacao_tipo)															as contratacao_tipo_sk
+,Hash128(headcount_status)															as status_sk
+//,Hash128(new_hire_flag) 															as hire_sk
+,load_date 																			as date_key
+,tempo_empresa_dias 																as tempo_empresa_key
+
+
+
+FROM [$(silver_layer)sv_headcount_f.QVD]
+(qvd);
+
+
+NoConcatenate
+sv_termination_f_raw:
+
+Load
+*
+,Hash128(
+	hierarquia_nome_n1,	hierarquia_nome_n2,	hierarquia_nome_n3,
+    hierarquia_nome_n4,	hierarquia_nome_n5, hierarquia_nome_n6,
+	num(hierarquia_cod_n1),	num(hierarquia_cod_n2),	num(hierarquia_cod_n3)
+    ,num(hierarquia_cod_n4),	num(hierarquia_cod_n5), num(hierarquia_cod_n6), 
+    gestor_direto_nome,	num(gestor_direto_cod)) 												as hierarquia_sk
+,Hash128(num(funcao_cod))																		as funcao_sk
+,Hash128(num(secao_cod)) 													    				as secao_sk
+,Hash128(num(filial_cod),num( coligada_cod))													as eldorado_entity_sk
+,Hash128(num(centro_de_custo) )																	as centro_de_custo_sk																																								
+,Hash128(num(situacao_cod))                  													as situacao_sk
+,Hash128(num(tipo_funcionario_cod) 	)															as tipo_funcionario_sk
+,Hash128(jornada_mensal) 																		as jornada_sk
+,Hash128(contratacao_tipo)																		as contratacao_tipo_sk
+,Hash128('Desligado')																			as status_sk
+//,Hash128(new_hire_flag) 															            as hire_sk
+,termination_date 																				as date_key
+,tempo_empresa_dias 																			as tempo_empresa_key
+
+FROM [$(silver_layer)sv_termination_f.QVD]
+(qvd);
+
+NoConcatenate
+
+sv_excel_hc_orcamento_historico_raw:
+LOAD
+*
+,Hash128(num(funcao_cod))																		as funcao_sk
+,Hash128(num(filial_cod), num( coligada_cod)	)												as eldorado_entity_sk
+,Hash128(num(centro_de_custo_cod) )																as centro_de_custo_sk
+,load_date  																					as date_key
+FROM [$(silver_layer)sv_excel_hc_orcamento_historico_f.QVD]
+(qvd);
+
+
+NoConcatenate
+
+sv_posicoes_raw:
+LOAD
+ 
+ *
+,Hash128(num(funcao_cod) )																		as funcao_sk
+,Hash128(num(centro_de_custo)) 												   					as centro_de_custo_sk
+,load_date  																					as date_key
+FROM [$(silver_layer)sv_posicoes_f.QVD]
+(qvd);
+
+
+
+
+
+/////////////////////////////        CREATE DIMENSION      //////////////////////////////////////////////
+
+NoConcatenate
+
+gd_employee_d:
+LOAD
+    pessoa,
+    FirstSortedValue(nome, -load_date)                  as nome,
+    FirstSortedValue(nascimento_data, -load_date)       as nascimento_data,
+    FirstSortedValue(raca_cod, -load_date)              as raca_cod,
+    FirstSortedValue(raca_nome, -load_date)             as raca_nome,
+    FirstSortedValue(genero, -load_date)                as genero,
+    FirstSortedValue(cpf, -load_date)                   as cpf,
+    FirstSortedValue(rg, -load_date)                    as rg,
+    FirstSortedValue(cnh_cod, -load_date)               as cnh_cod,
+    FirstSortedValue(cnh_tipo, -load_date)              as cnh_tipo,
+    FirstSortedValue(cnh_vencimento, -load_date)        as cnh_vencimento,
+    FirstSortedValue(estado, -load_date)                as estado,
+    FirstSortedValue(estado_civil_cod, -load_date)      as estado_civil_cod,
+    FirstSortedValue(estado_civil_nome, -load_date)     as estado_civil_nome,
+    FirstSortedValue(nacionalidade, -load_date)         as nacionalidade,
+    FirstSortedValue(naturalidade, -load_date)          as naturalidade,
+    FirstSortedValue(rua, -load_date)                   as rua,
+    FirstSortedValue(numero, -load_date)                as numero,
+    FirstSortedValue(complemento, -load_date)           as complemento,
+    FirstSortedValue(bairro, -load_date)                as bairro,
+    FirstSortedValue(cidade, -load_date)                as cidade,
+    FirstSortedValue(pais, -load_date)                  as pais,
+    FirstSortedValue(cep, -load_date)                   as cep,
+    FirstSortedValue(telefone, -load_date)              as telefone,
+    FirstSortedValue(readimitido, -load_date)           as readimitido,
+    FirstSortedValue(qtd_readimissoes, -load_date)      as qtd_readimissoes,
+    FirstSortedValue(pispasep, -load_date)              as pispasep,
+    FirstSortedValue(email, -load_date)                 as email,
+    FirstSortedValue(dependentes, -load_date)           as dependentes,
+    FirstSortedValue(sindicato, -load_date)             as sindicato,
+    FirstSortedValue(sindicato_nome, -load_date)        as sindicato_nome,
+    Max(load_date)                                      as ultima_data
+Resident sv_headcount_f_raw
+where indice_pessoa = 1
+Group By pessoa;
+
+
+STORE gd_employee_d INTO [$(gold_layer)gd_employee_d.QVD]
+(qvd);
+
+
+NoConcatenate 
+
+gd_hierarquia_d:
+load Distinct 
+ hierarquia_sk
+,hierarquia_nome_n1
+,hierarquia_nome_n2
+,hierarquia_nome_n3
+,hierarquia_nome_n4
+,hierarquia_nome_n5
+,hierarquia_nome_n6
+,hierarquia_cod_n1
+,hierarquia_cod_n2
+,hierarquia_cod_n3
+,hierarquia_cod_n4
+,hierarquia_cod_n5
+,hierarquia_cod_n6
+,gestor_direto_nome
+,gestor_direto_cod
+Resident sv_headcount_f_raw;
+
+STORE gd_hierarquia_d INTO [$(gold_layer)gd_hierarquia_d.QVD]
+(qvd);
+
+NoConcatenate
+
+gd_funcao_d:
+Load Distinct
+ Hash128(num(funcao_cod)) 						as funcao_sk
+,*
+From [$(silver_layer)sv_funcao_d.QVD]
+(qvd);
+
+STORE gd_funcao_d INTO [$(gold_layer)gd_funcao_d.QVD]
+(qvd);
+
+
+
+NoConcatenate
+
+gd_eldorado_entity_d:
+Load distinct
+ eldorado_entity_sk
+,filial_cod
+,filial_nome
+,coligada_cod
+,coligada_nome
+Resident sv_headcount_f_raw;
+
+STORE gd_eldorado_entity_d INTO [$(gold_layer)gd_eldorado_entity_d.QVD]
+(qvd);
+
+
+NoConcatenate
+
+gd_secao_d:
+Load distinct
+ secao_sk
+,secao_cod
+,secao_nome
+Resident sv_headcount_f_raw;
+
+STORE gd_secao_d INTO [$(gold_layer)gd_secao_d.QVD]
+(qvd);
+
+
+
+NoConcatenate
+gd_centro_de_custo_d:
+Load distinct
+Hash128(num(centro_de_custo) )																	as centro_de_custo_sk
+,UPPER(grupo_diretoria) 																		as GRUPO_DIRETORIA_SECTION_ACCESS
+,*
+FROM [$(silver_layer)sv_centro_de_custo_d.QVD]
+(qvd);
+
+STORE gd_centro_de_custo_d INTO [$(gold_layer)gd_centro_de_custo_d.QVD]
+(qvd);
+
+
+
+NoConcatenate
+
+
+gd_situacao_d:
+load Distinct 
+ situacao_sk
+,situacao_cod
+,situacao_nome
+Resident sv_headcount_f_raw;
+// está sendo salvo na etapa de termination dimension
+
+
+
+/* removida pois agora está dentro da dimensao de tempo na companhia
+
+ NoConcatenate
+
+gd_hire_d:
+load Distinct 
+ hire_sk
+,new_hire_flag as new_hire_flag
+Resident sv_headcount_f_raw;
+STORE gd_hire_d INTO [$(gold_layer)gd_hire_d.QVD]
+(qvd);
+
+*/
+
+NoConcatenate
+
+
+gd_status_d:
+load Distinct
+status_sk
+,headcount_status as status
+Resident sv_headcount_f_raw;
+// está sendo salvo na etapa de termination dimension
+
+
+NoConcatenate
+
+gd_tipo_funcionario_d:
+load
+    tipo_funcionario_sk,
+    tipo_funcionario_cod,
+    tipo_funcionario_nome
+Resident sv_headcount_f_raw
+Where Len(Trim(tipo_funcionario_nome)) > 0
+  and tipo_funcionario_nome <> '-';
+
+
+// está sendo salvo na etapa de termination dimension
+
+
+NoConcatenate
+
+gd_esclada_d:
+Load Distinct
+jornada_sk
+,jornada_mensal
+,escala
+Resident sv_headcount_f_raw;
+
+STORE gd_esclada_d INTO [$(gold_layer)gd_esclada_d.QVD]
+(qvd);
+
+
+Noconcatenate
+
+gd_idade_d:
+Load 
+    RecNo() - 1 as idade,  // Gera idades de 0 a 100
+    
+    // Criar Grupos de Idade
+    If(
+        RecNo() - 1 <= 10, '0-10',
+        If(RecNo() - 1 <= 20, '11-20',
+        If(RecNo() - 1 <= 30, '21-30',
+        If(RecNo() - 1 <= 40, '31-40',
+        If(RecNo() - 1 <= 50, '41-50',
+        If(RecNo() - 1 <= 60, '51-60',
+        If(RecNo() - 1 <= 70, '61-70',
+        '71+'))))))) as grupo_idade,
+        
+    // Criar Gerações com base na idade atual
+If((Year(Today()) - (RecNo() - 1)) >= 2011, 'Geração Alpha (2011 - presente)',
+If((Year(Today()) - (RecNo() - 1)) >= 1996, 'Geração Z (1996 - 2010)',
+If((Year(Today()) - (RecNo() - 1)) >= 1981, 'Geração Y (1981 - 1995)',
+If((Year(Today()) - (RecNo() - 1)) >= 1965, 'Geração X (1965 - 1980)',
+If((Year(Today()) - (RecNo() - 1)) >= 1946, 'Boomers (1946 - 1964)',
+'Geração Silenciosa (Antes de 1946)'))))) as geracao
+
+    // Criar Gerações com base na idade atual
+,If((Year(Today()) - (RecNo() - 1)) >= 2011, 'A',
+If((Year(Today()) - (RecNo() - 1)) >= 1996, 'Z',
+If((Year(Today()) - (RecNo() - 1)) >= 1981, 'Y',
+If((Year(Today()) - (RecNo() - 1)) >= 1965, 'X',
+If((Year(Today()) - (RecNo() - 1)) >= 1946, 'Boomers',
+'S'))))) as geracao_cod
+
+Autogenerate 101;
+
+STORE gd_idade_d INTO [$(gold_layer)gd_idade_d.QVD]
+(qvd);
+
+NoConcatenate
+
+gd_contratacao_tipo_d:
+Load Distinct
+contratacao_tipo_sk
+,contratacao_tipo
+Resident sv_headcount_f_raw;
+
+STORE gd_contratacao_tipo_d INTO [$(gold_layer)gd_contratacao_tipo_d.QVD]
+(qvd);
+
+
+
+
+///////////////////////////        CREATE HEADCOUNT FACT     //////////////////////////////////////////////
+
+
+NoConcatenate
+
+gd_headcount_f:
+Load
+*
+Resident sv_headcount_f_raw;
+
+
+Drop Field
+
+// EMPLOYEE
+ nome
+,nascimento_data
+,raca_cod
+,raca_nome
+,genero
+,cpf
+,rg
+,cnh_cod
+,cnh_tipo
+,cnh_vencimento
+,estado
+,estado_civil_cod
+,estado_civil_nome
+,nacionalidade                                                                                                                                                                
+,naturalidade                                                                                                         
+,rua
+,numero
+,complemento
+,bairro
+,cidade
+,pais
+,cep
+,telefone
+,readimitido
+,qtd_readimissoes
+,pispasep
+,email
+,dependentes
+,sindicato
+,sindicato_nome
+
+// HIERARQUIA
+,hierarquia_nome_n1
+,hierarquia_nome_n2
+,hierarquia_nome_n3
+,hierarquia_nome_n4
+,hierarquia_nome_n5
+,hierarquia_nome_n6
+,hierarquia_cod_n1
+,hierarquia_cod_n2
+,hierarquia_cod_n3
+,hierarquia_cod_n4
+,hierarquia_cod_n5
+,hierarquia_cod_n6
+,gestor_direto_nome
+
+
+// FUNCAO
+//,funcao_cod ---- mantido para facilitar a validação
+,funcao_nome
+,lider_flag
+,operacional_flag
+,carreira
+,grupo_cargo
+,grupo_cargo_micro
+,grupo_relatorio
+,gs
+,cargo_salarial_tipo
+,cbo_2002
+,cbo_descricao
+
+
+//CENTRO DE CUSTO
+// ,centro_de_custo -----------------mantido para facilitar a validação
+,secao_cod
+,secao_nome
+,coligada_cod
+,coligada_nome
+,filial_cod
+,filial_nome
+,grupo_diretoria
+,diretoria
+,area
+
+//secao
+,secao_cod
+,secao_nome
+,coligada_cod
+,coligada_nome
+,filial_cod
+,filial_nome
+,grupo_diretoria
+,diretoria
+,area
+
+//SITUACAO
+,situacao_cod
+,situacao_nome
+,headcount_status
+
+//TIPO FUNCIONARIO
+,tipo_funcionario_cod
+,tipo_funcionario_nome
+
+// ESCALA
+,jornada_mensal
+,escala
+
+//RANGE SALARIO
+,range_salario_key
+,[80]
+,[90]
+,[100]
+,[110]
+,[120]
+
+//ADVERTENCIAS - REVISAR O PROCESSO NAO ESTÁ CORRETO
+// ,advertencias
+// ,advertencias_total
+// ,advertencias_motivo
+// ,advertencias_punicao
+// ,advertencias_tipo
+// ,advertencias_data
+
+// NEW HIRE
+,contratacao_tipo
+
+
+From gd_headcount_f;
+
+STORE gd_headcount_f INTO [$(gold_layer)gd_headcount_f.QVD]
+(qvd);
+
+
+
+///////////////////////////        CREATE TERMINATION FACT      //////////////////////////////////////////////
+
+
+
+NoConcatenate
+
+gd_termination_f:
+Load
+*
+Resident sv_termination_f_raw;
+
+Drop Field
+
+// EMPLOYEE
+ nome
+,nascimento_data
+,raca_cod
+,raca_nome
+,genero
+,cpf
+,rg
+,cnh_cod
+,cnh_tipo
+,cnh_vencimento
+,estado
+,estado_civil_cod
+,estado_civil_nome
+,nacionalidade                                                                                                                                                                
+,naturalidade                                                                                                         
+,rua
+,numero
+,complemento
+,bairro
+,cidade
+,pais
+,cep
+,telefone
+,readimitido
+,qtd_readimissoes
+,pispasep
+,email
+,dependentes
+,sindicato
+,sindicato_nome
+
+// HIERARQUIA
+,hierarquia_nome_n1
+,hierarquia_nome_n2
+,hierarquia_nome_n3
+,hierarquia_nome_n4
+,hierarquia_nome_n5
+,hierarquia_nome_n6
+,hierarquia_cod_n1
+,hierarquia_cod_n2
+,hierarquia_cod_n3
+,hierarquia_cod_n4
+,hierarquia_cod_n5
+,hierarquia_cod_n6
+,gestor_direto_nome
+
+
+// FUNCAO
+,funcao_cod
+,funcao_nome
+,lider_flag
+,operacional_flag
+,carreira
+,grupo_cargo
+,grupo_cargo_micro
+,grupo_relatorio
+,gs
+,cargo_salarial_tipo
+,cbo_2002
+,cbo_descricao
+
+// entity
+
+,centro_de_custo
+,secao_cod
+,secao_nome
+,coligada_cod
+,coligada_nome
+,filial_cod
+,filial_nome
+,grupo_diretoria
+,diretoria
+,area
+
+//secao
+,secao_cod
+,secao_nome
+,coligada_cod
+,coligada_nome
+,filial_cod
+,filial_nome
+,grupo_diretoria
+,diretoria
+,area
+
+//SITUACAO
+,situacao_cod
+,situacao_nome
+// ,headcount_status
+
+//TIPO FUNCIONARIO
+,tipo_funcionario_cod
+,tipo_funcionario_nome
+
+// ESCALA
+,jornada_mensal
+,escala
+
+//RANGE SALARIO
+,range_salario_key
+,[80]
+,[90]
+,[100]
+,[110]
+,[120]
+
+//ADVERTENCIAS - REVISAR O PROCESSO NAO ESTÁ CORRETO
+// ,advertencias
+// ,advertencias_total
+// ,advertencias_motivo
+// ,advertencias_punicao
+// ,advertencias_tipo
+// ,advertencias_data
+
+// NEW HIRE
+,contratacao_tipo
+
+
+
+
+From gd_termination_f;
+
+
+STORE gd_termination_f INTO [$(gold_layer)gd_termination_f.QVD]
+(qvd);
+
+
+
+
+
+
+///////////////////////////        CREATE ORCAMENTO FACT      //////////////////////////////////////////////
+
+
+NoConcatenate
+
+gd_excel_hc_orcamento_historico_f:
+Load
+*
+Resident sv_excel_hc_orcamento_historico_raw;
+
+Drop Field 
+
+centro_de_custo_cod
+,load_date
+,funcao_cod
+,coligada_cod
+From gd_excel_hc_orcamento_historico_f;
+
+
+STORE gd_excel_hc_orcamento_historico_f INTO [$(gold_layer)gd_excel_hc_orcamento_historico_f.QVD]
+(qvd);
+
+
+
+
+
+
+///////////////////////////        CREATE POSITION FACT      //////////////////////////////////////////////
+
+
+
+
+
+
+NoConcatenate
+
+gd_posicoes_f:
+Load
+*
+Resident sv_posicoes_raw;
+
+Drop Field 
+ centro_de_custo
+,load_date
+,funcao_cod
+,funcao_nome
+// ,area
+// ,cidade
+// ,diretoria
+// ,genero
+// ,grupo_diretoria
+// ,nome
+// ,secao_cod
+// ,filial_cod
+// ,coligada_cod
+
+
+From gd_posicoes_f;
+;
+
+
+STORE gd_posicoes_f INTO [$(gold_layer)gd_posicoes_f.QVD]
+(qvd);
+
+
+
+
+
+
+///////////////////////////        CREATE TERMINATION DIMENSION      //////////////////////////////////////////////
+
+
+
+Concatenate (gd_situacao_d)
+
+gd_situacao_termination_d:
+load Distinct 
+situacao_sk
+,situacao_cod
+,situacao_nome
+
+Resident sv_termination_f_raw;
+
+
+
+
+STORE gd_situacao_d INTO [$(gold_layer)gd_situacao_d.QVD]
+(qvd);
+
+
+Concatenate(gd_status_d)
+load distinct
+status_sk
+,'Desligado' as status
+Resident sv_termination_f_raw;
+
+STORE gd_status_d INTO [$(gold_layer)gd_status_d.QVD]
+(qvd);
+
+
+
+Concatenate(gd_tipo_funcionario_d)
+LOAD Distinct
+    tipo_funcionario_sk,
+    tipo_funcionario_cod,
+    tipo_funcionario_nome
+Resident sv_termination_f_raw
+Where Len(Trim(tipo_funcionario_nome)) > 0
+  and tipo_funcionario_nome <> '-';
+
+
+
+STORE gd_tipo_funcionario_d INTO [$(gold_layer)gd_tipo_funcionario_d.QVD]
+(qvd);
+
+
+
+
+
+
+///////////////////////////        DROP      //////////////////////////////////////////////
+
+
+
+
+
+
+Drop Table
+ sv_headcount_f_raw
+,sv_termination_f_raw
+,gd_headcount_f
+,gd_termination_f
+,sv_excel_hc_orcamento_historico_raw
+,gd_excel_hc_orcamento_historico_f
+,gd_posicoes_f
+,sv_posicoes_raw
+
+
+
+
+, gd_employee_d
+, gd_hierarquia_d
+// , gd_funcao_d
+, gd_eldorado_entity_d
+, gd_secao_d
+, gd_centro_de_custo_d
+, gd_situacao_d
+, gd_tipo_funcionario_d
+, gd_esclada_d
+, gd_idade_d
+, gd_contratacao_tipo_d
+, gd_status_d
+
+;
+Exit script

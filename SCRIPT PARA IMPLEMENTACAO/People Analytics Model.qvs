@@ -1,0 +1,516 @@
+
+
+SET ThousandSep='.';
+SET DecimalSep=',';
+SET MoneyThousandSep='.';
+SET MoneyDecimalSep=',';
+SET MoneyFormat='R$#.##0,00;-R$#.##0,00';
+SET TimeFormat='hh:mm:ss';
+SET DateFormat='DD.MM.YYYY';
+SET TimestampFormat='DD.MM.YYYY hh:mm:ss[.fff]';
+SET FirstWeekDay=6;
+SET BrokenWeeks=1;
+SET ReferenceDay=0;
+SET FirstMonthOfYear=1;
+SET CollationLocale='pt-BR';
+SET CreateSearchIndexOnReload=1;
+SET MonthNames='jan;fev;mar;abr;mai;jun;jul;ago;set;out;nov;dez';
+SET LongMonthNames='janeiro;fevereiro;marÃƒÆ’Ã‚Â§o;abril;maio;junho;julho;agosto;setembro;outubro;novembro;dezembro';
+SET DayNames='seg;ter;qua;qui;sex;sÃƒÆ’Ã‚Â¡b;dom';
+SET LongDayNames='segunda-feira;terÃƒÆ’Ã‚Â§a-feira;quarta-feira;quinta-feira;sexta-feira;sÃƒÆ’Ã‚Â¡bado;domingo';
+SET NumericalAbbreviation='3:k;6:M;9:G;12:T;15:P;18:E;21:Z;24:Y;-3:m;-6:ÃƒÅ½Ã‚Â¼;-9:n;-12:p;-15:f;-18:a;-21:z;-24:y';
+
+//SET gold_layer = '\\BRSPOWVQDEV01\QlikSharedFolder\CustomData\Eldorado Brasil\3. Recursos Humanos\People Analytics\01. HR Medallion\03. Gold\';
+
+SET bronze_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/01. Bronze/';
+SET silver_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/02. Silver/';
+SET gold_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/01. HR Medallion/03. Gold/';
+SET manual_source = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/02. Manual Source/';
+SET ti_layer = 'lib://Staging Recursos Humanos/';
+SET external_layer = 'lib://Eldorado Data Folder - 3 Recursos Humanos - People Analytics/04. Fontes Externas/';
+
+
+
+// LOAD FATOS
+
+Qualify *;
+UNQUALIFY [link_key], [date_key], [hierarquia_sk], [funcao_sk],[eldorado_entity_sk],[pessoa], [situacao_sk], [tipo_funcionario_sk]
+, [jornada_sk], [idade], [contratacao_tipo_sk], [pessoa_hc], [pessoa_to], [tempo_empresa_key], [secao_sk]
+, [centro_de_custo_sk], [status_sk], [evento_sk]
+, [conta_contabil_sk], [custo_base_sk], [custo_fonte_sk];
+
+
+gd_headcount_f:
+Load
+*
+,AutoNumberHash128(date_key, hierarquia_sk, funcao_sk, eldorado_entity_sk, pessoa, situacao_sk, tipo_funcionario_sk, jornada_sk, idade, contratacao_tipo_sk, tempo_empresa_key, secao_sk, centro_de_custo_sk, status_sk) as link_key
+,pessoa 																																									   as pessoa_hc
+FROM [$(gold_layer)gd_headcount_f.QVD]
+(qvd);
+
+
+
+gd_termination_f:
+Load
+*
+,AutoNumberHash128(date_key, hierarquia_sk, funcao_sk, eldorado_entity_sk, pessoa, situacao_sk, tipo_funcionario_sk, jornada_sk, idade, contratacao_tipo_sk, tempo_empresa_key, secao_sk, centro_de_custo_sk) as link_key
+,pessoa 																																									   as pessoa_to
+
+FROM [$(gold_layer)gd_termination_f.QVD]
+(qvd);
+
+
+gd_excel_orcamento_historico_f:
+Load
+*
+,AutoNumberHash128(date_key, funcao_sk, eldorado_entity_sk, centro_de_custo_sk) as link_key
+
+
+FROM [$(gold_layer)gd_excel_hc_orcamento_historico_f.QVD]
+(qvd);
+
+
+gd_posicoes_f:
+Load
+*
+,AutoNumberHash128( funcao_sk, centro_de_custo_sk, date_key) as link_key
+
+FROM [$(gold_layer)gd_posicoes_f.QVD]
+(qvd);
+
+
+gd_eventos_f:
+Load
+*
+,AutoNumberHash128(date_key, hierarquia_sk, funcao_sk, eldorado_entity_sk, pessoa,situacao_sk, jornada_sk, idade
+,  contratacao_tipo_sk, tempo_empresa_key, secao_sk, centro_de_custo_sk
+,conta_contabil_sk, evento_sk   ) as link_key
+
+
+FROM [$(gold_layer)gd_eventos_f.qvd]
+(qvd);
+
+// -----------------------------------------------------------
+
+gd_custo_origem_opex_f:
+Load *
+,AutoNumberHash128([date_key], [centro_de_custo_sk], [conta_contabil_sk]   
+    , [custo_base_sk], [custo_fonte_sk]	)													as link_key
+
+FROM [$(gold_layer)gd_custo_origem_opex_f.QVD]
+(qvd);
+
+
+
+gd_producao_celulose_f:
+Load *
+,AutoNumberHash128(
+	date_key
+)																		as link_key
+
+FROM [$(gold_layer)gd_producao_celulose_f.QVD]
+(qvd);
+
+
+
+gd_vendas_celulose_f:
+Load *
+,AutoNumberHash128(
+	date_key
+)																		as link_key
+
+FROM [$(gold_layer)gd_vendas_celulose_f.QVD]
+(qvd);
+
+
+gd_receita_liquida_f:
+Load *
+,AutoNumberHash128(
+	date_key
+)																		as link_key
+
+FROM [$(gold_layer)gd_receita_liquida_f.QVD]
+(qvd);
+
+
+
+
+// LOAD DIMENSOES
+Unqualify *;
+
+gd_calendario_d:
+Load
+*
+FROM [$(gold_layer)gd_calendario_d.QVD]
+(qvd);
+
+
+gd_hierarquia_d:
+Load
+*
+FROM [$(gold_layer)gd_hierarquia_d.QVD]
+(qvd);
+
+gd_funcao_d:
+Load
+*
+FROM [$(gold_layer)gd_funcao_d.QVD]
+(qvd);
+
+gd_eldorado_entity_d:
+Load
+*
+FROM [$(gold_layer)gd_eldorado_entity_d.QVD]
+(qvd);
+
+gd_employee_d:
+Load
+*
+FROM [$(gold_layer)gd_employee_d.QVD]
+(qvd);
+
+gd_situacao_d:
+Load
+*
+FROM [$(gold_layer)gd_situacao_d.QVD]
+(qvd);
+
+gd_tipo_funcionario_d:
+Load
+*
+FROM [$(gold_layer)gd_tipo_funcionario_d.QVD]
+(qvd);
+
+
+gd_esclada_d:
+Load
+*
+FROM [$(gold_layer)gd_esclada_d.QVD]
+(qvd);
+
+
+gd_idade_d:
+Load
+*
+FROM [$(gold_layer)gd_idade_d.QVD]
+(qvd);
+
+gd_contratacao_tipo_d:
+Load
+*
+FROM [$(gold_layer)gd_contratacao_tipo_d.QVD]
+(qvd);
+
+gd_tempo_companhia_d:
+Load
+*
+FROM [$(gold_layer)gd_tempo_companhia_d.QVD]
+(qvd);
+
+gd_centro_de_custo_d:
+Load
+*
+FROM [$(gold_layer)gd_centro_de_custo_d.QVD]
+(qvd);
+
+gd_secao_d:
+Load
+*
+FROM [$(gold_layer)gd_secao_d.QVD]
+(qvd);
+
+gd_status_d:
+Load
+*
+FROM [$(gold_layer)gd_status_d.QVD]
+(qvd);
+
+//gd_conta_debito_d:
+//Load
+//*
+//FROM [$(gold_layer)gd_conta_debito_d.QVD]
+//(qvd);
+
+
+gd_evento_d:
+Load
+*
+FROM [$(gold_layer)gd_evento_d.QVD]
+(qvd);
+
+// gd_centro_lucro_d:
+// Load
+// *
+// FROM [$(gold_layer)gd_centro_lucro_d.QVD]
+// (qvd);
+
+
+gd_conta_contabil_d:
+Load
+*
+FROM [$(gold_layer)gd_conta_contabil_d.QVD]
+(qvd);
+
+
+
+gd_custo_base_d:
+Load
+*
+FROM [$(gold_layer)gd_custo_base_d.QVD]
+(qvd);
+
+
+gd_custo_fonte_d:
+Load
+*
+FROM [$(gold_layer)gd_custo_fonte_d.QVD]
+(qvd);
+
+
+
+
+
+
+
+Link:
+LOAD DISTINCT
+    link_key
+    ,date_key
+    ,tempo_empresa_key
+    ,hierarquia_sk
+    ,funcao_sk
+    ,eldorado_entity_sk
+    ,secao_sk
+    ,centro_de_custo_sk
+    ,pessoa
+    ,situacao_sk
+    ,tipo_funcionario_sk
+    ,jornada_sk
+    ,idade
+    ,contratacao_tipo_sk
+    ,status_sk
+ //   ,'' as conta_debito_sk
+    ,'' as evento_sk
+//     ,'' as centro_de_lucro_sk
+    ,'' as conta_contabil_sk
+    ,'' as custo_base_sk
+    ,'' as custo_fonte_sk
+
+RESIDENT gd_headcount_f;
+
+LOAD DISTINCT
+    link_key
+    ,date_key
+    ,tempo_empresa_key
+    ,hierarquia_sk
+    ,funcao_sk
+    ,eldorado_entity_sk
+    ,secao_sk
+    ,centro_de_custo_sk
+    ,pessoa
+    ,situacao_sk
+    ,tipo_funcionario_sk
+    ,jornada_sk
+    ,idade
+    ,contratacao_tipo_sk
+    ,'' as status_sk
+ //   ,'' as conta_debito_sk
+    ,'' as evento_sk
+//     ,'' as centro_de_lucro_sk
+    ,'' as conta_contabil_sk
+    ,'' as custo_base_sk
+    ,'' as custo_fonte_sk
+
+RESIDENT gd_termination_f;
+
+
+LOAD DISTINCT
+    link_key
+    ,date_key
+    ,'' as tempo_empresa_key
+    ,'' as hierarquia_sk
+    , funcao_sk
+    , eldorado_entity_sk
+    ,'' as secao_sk
+    ,centro_de_custo_sk
+    ,'' as pessoa
+    ,'' as situacao_sk
+    ,'' as tipo_funcionario_sk
+    ,'' as jornada_sk
+    ,'' as idade
+    ,'' as contratacao_tipo_sk
+    ,'' as status_sk
+ //   ,'' as conta_debito_sk
+    ,'' as evento_sk
+//     ,'' as centro_de_lucro_sk
+    ,'' as conta_contabil_sk
+    ,'' as custo_base_sk
+    ,'' as custo_fonte_sk
+
+Resident gd_excel_orcamento_historico_f;
+
+
+LOAD DISTINCT
+    link_key
+    ,date_key
+    ,'' as tempo_empresa_key
+    ,'' as hierarquia_sk
+    ,funcao_sk
+    ,'' as eldorado_entity_sk
+    ,'' as secao_sk
+    ,centro_de_custo_sk
+    ,'' as pessoa
+    ,'' as situacao_sk
+    ,'' as tipo_funcionario_sk
+    ,'' as jornada_sk
+    ,'' as idade
+    ,'' as contratacao_tipo_sk
+    ,'' as status_sk
+//    ,'' as conta_debito_sk
+    ,'' as evento_sk
+//     ,'' as centro_de_lucro_sk
+    ,'' as conta_contabil_sk
+    ,'' as custo_base_sk
+    ,'' as custo_fonte_sk
+
+Resident gd_posicoes_f;
+
+
+LOAD DISTINCT
+    link_key
+    ,date_key
+    ,tempo_empresa_key
+    ,hierarquia_sk
+    ,funcao_sk
+    ,eldorado_entity_sk
+    ,secao_sk
+    ,centro_de_custo_sk
+    ,pessoa
+    ,situacao_sk
+    ,'' as tipo_funcionario_sk
+    ,jornada_sk
+    ,idade
+    ,contratacao_tipo_sk
+    ,'' as status_sk
+//    ,conta_debito_sk
+    ,evento_sk
+//  ,'' as centro_de_lucro_sk
+    ,conta_contabil_sk
+    ,'' as custo_base_sk
+    ,'' as custo_fonte_sk
+
+Resident gd_eventos_f;
+
+
+
+LOAD Distinct
+     link_key
+    ,date_key
+    ,'' as tempo_empresa_key
+    ,'' as hierarquia_sk
+    ,'' as funcao_sk
+    ,'' as eldorado_entity_sk
+    ,'' as secao_sk
+    ,centro_de_custo_sk
+    ,'' as pessoa
+    ,'' as situacao_sk
+    ,'' as tipo_funcionario_sk
+    ,'' as jornada_sk
+    ,'' as idade
+    ,'' as contratacao_tipo_sk
+    ,'' as status_sk
+//    ,'' as conta_debito_sk
+    ,'' as evento_sk
+//     ,centro_de_lucro_sk
+    ,conta_contabil_sk
+    ,custo_base_sk
+    ,custo_fonte_sk
+
+Resident gd_custo_origem_opex_f;
+
+LOAD Distinct
+     link_key
+    ,date_key
+    ,'' as tempo_empresa_key
+    ,'' as hierarquia_sk
+    ,'' as funcao_sk
+    ,'' as eldorado_entity_sk
+    ,'' as secao_sk
+    ,'' as centro_de_custo_sk
+    ,'' as pessoa
+    ,'' as situacao_sk
+    ,'' as tipo_funcionario_sk
+    ,'' as jornada_sk
+    ,'' as idade
+    ,'' as contratacao_tipo_sk
+    ,'' as status_sk
+ //   ,'' as conta_debito_sk
+    ,'' as evento_sk
+//     ,'' as centro_de_lucro_sk
+    ,'' as conta_contabil_sk
+    ,'' as custo_base_sk
+    ,'' as custo_fonte_sk
+
+Resident gd_producao_celulose_f;
+
+LOAD Distinct
+     link_key
+    ,date_key
+    ,'' as tempo_empresa_key
+    ,'' as hierarquia_sk
+    ,'' as funcao_sk
+    ,'' as eldorado_entity_sk
+    ,'' as secao_sk
+    ,'' as centro_de_custo_sk
+    ,'' as pessoa
+    ,'' as situacao_sk
+    ,'' as tipo_funcionario_sk
+    ,'' as jornada_sk
+    ,'' as idade
+    ,'' as contratacao_tipo_sk
+    ,'' as status_sk
+//    ,'' as conta_debito_sk
+    ,'' as evento_sk
+//     ,'' as centro_de_lucro_sk
+    ,'' as conta_contabil_sk
+    ,'' as custo_base_sk
+    ,'' as custo_fonte_sk
+
+Resident gd_vendas_celulose_f;
+
+
+LOAD Distinct
+     link_key
+    ,date_key
+    ,'' as tempo_empresa_key
+    ,'' as hierarquia_sk
+    ,'' as funcao_sk
+    ,'' as eldorado_entity_sk
+    ,'' as secao_sk
+    ,'' as centro_de_custo_sk
+    ,'' as pessoa
+    ,'' as situacao_sk
+    ,'' as tipo_funcionario_sk
+    ,'' as jornada_sk
+    ,'' as idade
+    ,'' as contratacao_tipo_sk
+    ,'' as status_sk
+//    ,'' as conta_debito_sk
+    ,'' as evento_sk
+//     ,'' as centro_de_lucro_sk
+    ,'' as conta_contabil_sk
+    ,'' as custo_base_sk
+    ,'' as custo_fonte_sk
+
+Resident gd_receita_liquida_f;
+
+
+
+DROP FIELDS pessoa, date_key, hierarquia_sk,funcao_sk, eldorado_entity_sk, situacao_sk, tipo_funcionario_sk, jornada_sk, idade, contratacao_tipo_sk, tempo_empresa_key, secao_sk
+,  centro_de_custo_sk, status_sk, evento_sk
+, conta_contabil_sk, custo_base_sk, custo_fonte_sk
+
+FROM gd_headcount_f, gd_termination_f, gd_excel_orcamento_historico_f, gd_posicoes_f, gd_eventos_f
+,gd_custo_origem_opex_f, gd_producao_celulose_f, gd_vendas_celulose_f, gd_receita_liquida_f;
+
+exit script;

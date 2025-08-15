@@ -1,0 +1,367 @@
+
+
+TRACE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Iniciando carregamento medidas de Hora extra<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<;
+SET horas_total_extras = '{<tipo_evento={''Hora extra''}>} [#_hora_total]';
+ 
+SEt horas_extras_atual = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_horas_total_extras]';
+ 
+SET horas_extras_anterior = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>} [#_horas_total_extras]';
+ 
+SET custo_medio_he = '{<tipo_evento={''Hora extra''}, flag_hora_extra={''1''}>} [#_valor_evento_total] / count({<flag_hora_extra={''1''}>} gd_eventos_f.hora_total)';
+ 
+SET custo_medio_he_ano_anterior = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>}[#_custo_medio_he]';
+ 
+SET custo_medio_he_ano_atual = '{<[gd_eventos_f.load_date] = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"}, ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>}[#_custo_medio_he]';
+ 
+SET custo_medio_por_pessoa_he = '[#_valor_evento_horas_extras]/[#_pessoas_com_registro_he]';
+ 
+SET media_he = '{<flag_hora_extra={''1''}>}[#_horas_total_extras]/count({<flag_hora_extra={''1''}>} gd_eventos_f.hora_total)';
+ 
+SET pessoas_elegiveis_he= 'count({<flag_hora_extra={''1''}, grupo_relatorio={''8 - Demais''}>}distinct pessoa)';
+ 
+SET pessoas_com_registro_he = 'count({<flag_hora_extra={''1''}>}distinct pessoa)';
+ 
+SET pessoas_inelegiveis_he = 'count({<flag_hora_extra={''1''}, grupo_relatorio-={''8 - Demais''}>}distinct pessoa)';
+ 
+SET qtd_eventos_he= 'count({<flag_hora_extra={''1''}>} gd_eventos_f.hora_total)';
+ 
+SET qtd_media_he_por_pessoa = '[#_qtd_eventos_he]/[#_pessoas_com_registro_he]';
+ 
+SET valor_evento_hora_extra_recorrente = '{<nome_conta_debito={''Recorrente''}>}[#_valor_evento_horas_extras]';
+ 
+SET valor_evento_horas_extras_esporadicas = '{<nome_conta_debito={''Esporádico''}>}[#_valor_evento_horas_extras]';
+ 
+SET %_HE_pessoas_elegiveis = '[#_pessoas _elegiveis_he]/[#_pessoas_com_registro_he]';
+ 
+SET %_HE_pessoas_inelegiveis = '([#_pessoas_com_registro_he] - [#_pessoas _elegiveis_he])/[#_pessoas_com_registro_he]';
+ 
+SET %_HE_remuneracao_total = '([#_valor_evento_horas_extras])/(({<flag_hora_extra={''1''}, grupo_relatorio={''4 - Coordenador'',''8 - Demais''}>}[#_salario]) +  [#_valor_evento_horas_extras])';
+ 
+SET %_hora_extra_esporadica = '[#_valor_evento_horas_extras_esporadicas]/[#_valor_evento_horas_extras]';
+ 
+SET %_hora_extra_recorrente = '[#_valor_evento_hora_extra_recorrente]/[#_valor_evento_horas_extras]';
+ 
+SET %_MoM_horas_extras_custo_medio_he = '(({<gd_eventos_f.load_date={">=$(=Date(MonthStart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} [#_custo_medio_he])
+-
+                                        ({<gd_eventos_f.load_date={">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} [#_custo_medio_he]))
+/
+                                        ({<gd_eventos_f.load_date={">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} [#_custo_medio_he])';
+ 
+ 
+SET %_YoY_custo_medio_he = '(({<gd_eventos_f.load_date={">=$(=Date(YearStart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} [#_custo_medio_he])
+    -
+({<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} [#_custo_medio_he]))
+/
+({<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} [#_custo_medio_he])';
+ 
+ 
+SET %_HE_total_horas_trabalhadas = '[#_horas_total_extras]/([#_horas_total_jornada_mensal] + [#_horas_total_extras])';
+ 
+SET %_YoY_horas_extras_valor  = '({<gd_eventos_f.load_date={">=$(=Date(YearStart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} [#_valor_evento_horas_extras])
+-
+({<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} [#_valor_evento_horas_extras]))
+/
+({<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} [#_valor_evento_horas_extras])';
+ 
+ 
+SET %_YoY_hora_extra =  '({<gd_eventos_f.load_date={">=$(=Date(YearStart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} #_horas_total_extras)
+-
+Sum({<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} #_horas_total_extrasl))
+/
+Sum({<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} #_horas_total_extras)';
+ 
+ 
+SET %_MoM_horas_extras = '(({<gd_eventos_f.load_date = {">=$(=Date(Monthstart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} #_horas_total_extras) -
+Sum({<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} #_horas_total_extras))
+/
+Sum({<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} #_horas_total_extras)';
+ 
+ 
+SET %MoM_hora_extra_valor = '({<gd_eventos_f.load_date = {">=$(=Date(Monthstart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} valor_evento_horas_extras) -
+({<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}valor_evento_horas_extras))
+/
+({<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>} valor_evento_horas_extrasl)';
+ 
+ 
+SET valor_evento_horas_extras =  '{<tipo_evento={''Hora extra''}>} [#_valor_evento_total]';
+ 
+SET valor_eventos_horas_extras_ano_atual = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>}[#_valor_evento_horas_extras]';
+ 
+SET valor_eventos_horas_extras_ano_anterior = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>}[#_valor_evento_horas_extras]';
+ 
+ 
+SET valor_evento_hora_extra_recorrente = '{<nome_conta_debito={''Recorrente''}>}[#_valor_evento_horas_extras]';
+ 
+SET valor_evento_horas_extras_anterior= '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>} [#_valor_evento_horas_extras]';
+ 
+SET valor_evento_horas_extras_atual = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>}[#_valor_evento_horas_extras]';
+ 
+SET valor_evento_hora_extra_grafico = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>}[#_valor_evento_horas_extras]';
+ 
+ TRACE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Iniciando carregamento medidas de Absenteísmo  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<;
+ 
+ 
+SET dias_absenteismo =  '[#_dias_atestado]+ [#_dias_faltas] +[#_dia_atraso] +[#_dias_abonos]';
+ 
+SET dias_nao_planejados = '[#_dias_faltas] + [#_dia_atraso]';
+ 
+SET dias_abonos = 'Sum(aggr(sum({<tipo_evento = {''Abonos''}>} gd_eventos_f.hora_total) * 30 / sum({<tipo_evento = {''Jornada''}>} distinct gd_eventos_f.hora_total),mes_nome, gd_eventos_f.chapa))';
+ 
+SET dias_atestado = 'Sum(aggr(sum({<tipo_evento = {''Atestado''}>} [gd_eventos_f.hora_total]) * 30 
+
+    / 
+
+    sum({<tipo_evento = {''Jornada''}>} distinct [gd_eventos_f.hora_total]),gd_eventos_f.chapa, (mes_nome)))';
+ 
+ 
+SEt dias_faltas = 'Sum(aggr(sum({<tipo_evento = {''Falta''}>} [gd_eventos_f.hora_total]) * 30 
+
+    / 
+
+    sum({<tipo_evento = {''Jornada''}>} distinct [gd_eventos_f.hora_total]),gd_eventos_f.chapa, (mes_nome)))';
+ 
+ 
+SET dias_reembolso = 'Sum(aggr(sum({<tipo_evento = {''Reembolso''}>} [gd_eventos_f.hora_total]) * 30 
+
+    / 
+
+    sum({<tipo_evento = {''Jornada''}>} distinct [gd_eventos_f.hora_total]),mes_nome, gd_eventos_f.chapa))';
+ 
+ 
+SET dia_atraso = 'Sum(aggr(sum({<tipo_evento = {''Atraso''}>} [gd_eventos_f.hora_total]) * 30 
+
+  / 
+
+   sum({<tipo_evento = {''Jornada''}>} distinct [gd_eventos_f.hora_total]),mes_nome, [gd_eventos_f.chapa]))';
+
+ 
+SET eventos_absenteismo = '{<tipo_evento-={''Jornada'',''Hora extra'', ''Abonos'', ''Saldo Banco'',''Reembolso''}>}[#_hora_total]';
+ 
+SET horas_total_absenteismo = '[#_horas_total_atestado] + [#_horas_total_atrasos] + [#_horas_total_faltas] + [#_horas_total_abonos]';
+ 
+SET horas_nao_planejadas = '[#_horas_total_faltas] + [#_horas_total_atrasos]';
+ 
+SET horas_total_abonos = '{<tipo_evento={''Abonos''}>} [#_hora_total]';
+ 
+SET media_faltantes = 'num(([#_dias_faltas] +[#_dia_atraso])/count({<flag_horas_nao_planejadas={''1''}>}distinct pessoa),''#,##'') & '' dias''';
+ 
+ 
+SET %_indice_absenteismo = '[#_horas_total_absenteismo]/[#_horas_total_jornada_mensal]';
+ 
+ 
+SET %_indice_absenteismo_ano_anterior = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"}, ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>} [#_horas_total_absenteismo]
+
+/
+
+{< gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>} [#_horas_total_jornada_mensal]';
+ 
+ 
+SET %_indice_absenteismo_ano_atual= '{< [gd_eventos_f.load_date] = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_horas_total_absenteismo]
+
+/{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}
+>} [#_horas_total_jornada_mensal]';
+ 
+ 
+SET %_indice_absenteismo_grafico = '({< [gd_eventos_f.load_date] = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_horas_total_absenteismo])
+
+/
+
+({<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_horas_total_jornada_mensal])';
+ 
+SET %_indice_horas_nao_planejadas = '#_horas_nao_planejadas/[#_horas_total_jornada_mensal]';
+ 
+SET %_indice_absenteismo_nao_planejado_ano_anterior= '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},
+
+  ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>} [#_horas_nao_planejadas]
+
+/
+
+{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},
+
+  ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}
+>} [#_horas_total_jornada_mensal]';
+ 
+ 
+SET %_indice_absenteismo_nao_planejado_ano_atual = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_horas_nao_planejadas]
+
+/
+
+{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_horas_total_jornada_mensal]';
+ 
+ 
+SET %_MoM_absenteismo = '({<gd_eventos_f.load_date = {">=$(=Date(Monthstart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} [%_indice_absenteismo] -
+
+{<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_absenteismo])
+
+/
+
+({<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_absenteismo])'
+
+;
+ 
+SET %_YoY_absenteismo=  '({<[gd_eventos_f.load_date] = {">=$(=Date(YearStart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} [%_indice_absenteismo] -
+
+{<[gd_eventos_f.load_date] = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_absenteismo])
+
+/
+
+({<[gd_eventos_f.load_date] = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_absenteismo])'
+
+;
+ 
+ 
+SET %_YoY_horas_nao_planejadas = '({<gd_eventos_f.load_date = {">=$(=Date(YearStart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} [%_indice_horas_nao_planejadas] -
+
+{<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_horas_nao_planejadas])
+
+/
+
+({<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_horas_nao_planejadas])';
+ 
+SET %_MoM_horas_nao_planejadas = '({<gd_eventos_f.load_date = {">=$(=Date(Monthstart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} [%_indice_horas_nao_planejadas] -
+
+{<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_horas_nao_planejadas])
+
+/
+
+({<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_horas_nao_planejadas])';
+ 
+SET %_horas_nao_planejadas_tabela_atual = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"}, ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_horas_nao_planejadas]
+
+/
+
+{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_horas_total_jornada_mensal]';
+ 
+ 
+SET %_horas_nao_planejadas_tabela_ant = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''))) - 1"}>} [#_horas_nao_planejadas]
+
+/
+
+{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''))) - 1"}>} [#_horas_total_jornada_mensal]';
+ 
+SET %_YoY_horas_nao_planejadas_tabela = '([%_horas_nao_planejadas_tabela] - [%_horas_nao_planejadas_tabela-ant])/[%_horas_nao_planejadas_tabela-ant]';
+ 
+ 
+SET valor_eventos_faltas = '{<tipo_evento={''Falta'',''Reembolso''}>} [#_valor_evento_total]';
+ 
+ 
+SET valor_eventos_falta_ano_atual = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_valor_evento_faltas]';
+ 
+ 
+SET valor_eventos_falta_ano_anterior ='{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>} [#_valor_evento_faltas]';
+ 
+ 
+SET valor_evento_faltas_operacional = '{<tipo_evento={''Falta'',''Reembolso''}, grupo_relatorio={''8 - Demais''}>} [#_valor_evento_total]';
+ 
+ 
+SET valor_evento_faltas_nao_operacional = '{<tipo_evento={''Falta'',''Reembolso''}, grupo_relatorio={''7 - Líder''}>} [#_valor_evento_total]';
+ 
+ 
+SET %_MoM_valor_total_faltas = '({<gd_eventos_f.load_date = {">=$(=Date(Monthstart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} #_valor_eventos_falta -
+
+{<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}#_valor_eventos_falta)
+
+/
+
+({<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}#_valor_eventos_falta)';
+ 
+ 
+SET %_YoY_valor_total_faltas= '({<gd_eventos_f.load_date = {">=$(=Date(YearStart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} #_valor_eventos_falta -
+
+{<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}#_valor_eventos_falta)
+
+/
+
+({<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}#_valor_eventos_falta)';
+ 
+ 
+ 
+SET valor_evento_falta_grafico = '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>} [#_valor_eventos_falta]';
+ 
+SET %_indice_abono = '[#_horas_total_abonos]/[#_horas_total_jornada_mensal]';
+ 
+SET %_indice_abono_ano_atual = 
+
+'{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>}[#_horas_total_abonos]
+
+/
+
+{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>}[#_horas_total_jornada_mensal]';
+ 
+ 
+SET %_indice_abono_ano_anterior= '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>}[#_horas_total_abonos]
+
+/
+
+{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>}[#_horas_total_jornada_mensal]';
+ 
+ 
+SET %YoY_indice_abono = '({<gd_eventos_f.load_date = {">=$(=Date(YearStart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY'')) <=$(=Date(YearEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} [%_indice_abono] -
+
+{<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_abono])
+
+/
+
+({<gd_eventos_f.load_date = {">=$(=Date(YearStart(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(YearEnd(AddYears(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_abono])';
+ 
+ 
+SET %MoM_indice_abono = '({<gd_eventos_f.load_date = {">=$(=Date(Monthstart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"}>} [%_indice_abono] -
+
+{<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_abono])
+
+/
+
+({<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -1)), ''DD.MM.YYYY''))"}>}[%_indice_abono])';
+ 
+ 
+SET %_abonos_atual_grafico= '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>}[#_horas_total_abonos]
+
+/
+
+{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"=$(=Year(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY'')))"}>}[#_horas_total_jornada_mensal]';
+ 
+ 
+SET %_abono_anterior_grafico= '{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>}[#_horas_total_abonos]
+
+/
+
+{<gd_eventos_f.load_date = {"=$(=Date(AddMonths(Date#(MonthStart(Only(GetFieldSelections(gd_eventos_f.load_date))), ''DD.MM.YYYY''),1), ''DD.MM.YYYY''))"},ano = {"$(=Year(AddYears(Date#(Only(gd_eventos_f.load_date), ''DD.MM.YYYY''), -1)))"}>}[#_horas_total_jornada_mensal]';
+
+ 
+TRACE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Iniciando carregamento medidas de Banco Horas  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<;
+ 
+ 
+SET valor_evento_saldo_banco_pago ='{<codigo_evento = {''695'',''696'',''698''}, mes_nome = {"mar*", "set*"}>} [#_valor_evento_horas_extras]';
+ 
+SET %_colaboradores_com_saldo_banco =  'count({<tipo_evento={''Saldo Banco''}>}distinct pessoa)/count(Total distinct pessoa)';
+ 
+SET %_MAR_SET_pgt_banco= 'If(WildMatch(Date(Max(gd_eventos_f.load_date), ''DD/MM''), ''15/03'', ''15/09''),
+
+(Sum({1<gd_eventos_f.load_date = {">=$(=Date(Monthstart(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))<=$(=Date(MonthEnd(Max(gd_eventos_f.load_date)), ''DD.MM.YYYY''))"},codigo_evento={''695'',''698'',''696''}>} gd_eventos_f.valor_evento_total) -
+
+Sum({1<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -6)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -6)), ''DD.MM.YYYY''))"}, codigo_evento={''696'',''695'',''698''}>} gd_eventos_f.valor_evento_total))
+
+/
+
+Sum({1<gd_eventos_f.load_date = {">=$(=Date(MonthStart(AddMonths(Max(gd_eventos_f.load_date), -6)), ''DD.MM.YYYY''))<=$(=Date(Monthend(AddMonths(Max(gd_eventos_f.load_date), -6)), ''DD.MM.YYYY''))"}, codigo_evento={''696'',''695'',''698''}>} gd_eventos_f.valor_evento_total)
+
+,
+
+null()
+
+)';
+ 
+ 
+SET horas_total_saldo_banco = '{<tipo_evento= {''Saldo Banco''}>} [#_hora_total]';
+ 
+SET horas_total_saldo_banco_positivo ='{<tipo_evento= {''Saldo Banco''}, descricao_evento={''SALDO POSITIVO''}>} [#_hora_total]';
+ 
+SET horas_total_saldo_banco_negativo = '{<tipo_evento= {''Saldo Banco''}, descricao_evento={''SALDO NEGATIVO''}>} [#_hora_total]';
+ 
+ 
+ 
+ 
+ 
+exit script;
+ 
+ 
