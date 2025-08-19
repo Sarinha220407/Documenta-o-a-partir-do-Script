@@ -51,6 +51,7 @@ Você é uma/um redator(a) técnico(a) e analista de negócios. Sua missão é p
                 o   Tabela de duas colunas (Inclusão / Exclusão) por métrica.
                 8.  Glossário
                 o   Definição de termos técnicos e siglas.
+                o   Considere o ano atual como 2025.
                 ________________________________________
                 Saída Esperada
                 Entregar um único documento que explique, para cada métrica/indicador do dashboard, o que é contado, o que não é contado, quais são os casos especiais. Sempre manter o foco nas regras de negócio e nos critérios de inclusão e exclusão.

@@ -162,7 +162,7 @@ Tempo médio que os funcionários permanecem na empresa, calculado em anos.
 
 #### **Casos Especiais**
 - **Readmissões:**
-  - O tempo é **somatizado** (ex.: funcionário que saiu e voltou após 2 anos tem tenure total de 5 anos).
+  - O tempo é **resetado**.
 - **Fusões/aquisições:**
   - Funcionários de empresas adquiridas **podem ter o tempo recalculado** a partir da data de integração.
 

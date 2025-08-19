@@ -102,12 +102,12 @@ Tempo que um funcionário permanece na empresa, medido em **dias, meses ou anos*
 | Ano 10–14               | 10–14                  | –                              |
 | Ano 15+                  | 15+                    | –                              |
 | Operacional (curto prazo)| –                      | 0–12 meses                     |
-| Operacional (longo prazo)| –                      | 1–4 anos                       |
+| Operacional (longo prazo)| 1–4 anos               | –                              |
 
 ---
 ### **2.4 Vagas Abertas (Posições Disponíveis)**
 **Definição:**
-Total de **posições autorizadas** (orcamentadas) que estão **vagas** (sem ocupante) em um determinado período.
+Total de **posições autorizadas** (orçamentadas) que estão **vagas** (sem ocupante) em um determinado período.
 
 #### **Critérios de Inclusão**
 - Posições com **centro de custo ativo** e **cargo definido** no sistema.
@@ -172,13 +172,12 @@ Segmentação dos funcionários por **idade** e **geração**, para análises de
 #### **Faixas de Idade**
 | **Grupo**      | **Idade**  | **Geração**               |
 |----------------|------------|---------------------------|
-| 0–10           | 0–10       | Geração Alpha (2011–hoje) |
-| 11–20          | 11–20      | Geração Z (1996–2010)     |
-| 21–30          | 21–30      | Geração Y (1981–1995)     |
-| 31–40          | 31–40      | Geração X (1965–1980)     |
-| 41–50          | 41–50      | Boomers (1946–1964)       |
-| 51–60          | 51–60      | Boomers                  |
-| 61+            | 61+        | Geração Silenciosa        |
+| 0–14           | 0–14       | Geração Alpha (2011–hoje) |
+| 15–29          | 15–29      | Geração Z (1996–2010)     |
+| 30–44          | 30–44      | Geração Y (1981–1995)     |
+| 45–60          | 45–60      | Geração X (1965–1980)     |
+| 61–79          | 61–79      | Boomers (1946–1964)       |
+| 79+            | 79+        | Geração Silenciosa        |
 
 #### **Critérios de Inclusão**
 - Funcionários com **data de nascimento registrada**.
@@ -222,7 +221,7 @@ Os indicadores podem ser filtrados por:
 
 #### **Por Faixa de Valor**
 - **Tempo de empresa:** Ex.: "Funcionários com menos de 1 ano".
-- **Faixa etária:** Ex.: "Geração Y (25–40 anos)".
+- **Faixa etária:** Ex.: "Geração Y (30–44 anos)".
 - **Faixa salarial:** Ex.: "Salário entre R$ 3.000 e R$ 5.000".
 
 #### **Por Categoria**
